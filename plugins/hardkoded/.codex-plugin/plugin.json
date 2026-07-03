@@ -1,0 +1,33 @@
+{
+  "name": "hardkoded",
+  "version": "1.0.0",
+  "description": "A useful set of skills made by hardkoded",
+  "author": {
+    "name": "hardkoded",
+    "url": "https://www.hardkoded.com/"
+  },
+  "homepage": "https://www.hardkoded.com/",
+  "repository": "https://github.com/hardkoded/hardkoded-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "brainstorming",
+    "ideas",
+    "projects"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "hardkoded",
+    "shortDescription": "Generate practical software project ideas.",
+    "longDescription": "Useful skills made by hardkoded",
+    "developerName": "hardkoded",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://www.hardkoded.com/",
+    "defaultPrompt": [
+      "Give me 5 random project ideas for developers"
+    ]
+  }
+}

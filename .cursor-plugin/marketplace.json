@@ -1,0 +1,18 @@
+{
+  "name": "hardkoded-skills",
+  "owner": {
+    "name": "hardkoded",
+    "url": "https://www.hardkoded.com/"
+  },
+  "metadata": {
+    "description": "Useful skills made by hardkoded",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "hardkoded",
+      "source": "./plugins/hardkoded",
+      "description": "Generate practical random software project ideas."
+    }
+  ]
+}
