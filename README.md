@@ -1,105 +1,32 @@
 # hardkoded-skills
 
-A set of great skills built by the guy behind [hardkoded](https://www.hardkoded.com/), powered by the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/).
+A collection of plain-text skills by [hardkoded](https://www.hardkoded.com/).
 
-Each skill in this repo is an MCP server that works with multiple AI assistants out of the box:
-
-| Platform | How it connects |
-|---|---|
-| **Claude** (Desktop / claude.ai) | MCP stdio server |
-| **GitHub Copilot** (VS Code) | MCP stdio / HTTP server |
-| **Cursor** | MCP stdio server |
-
----
+This repository stores skills as content, not as MCP servers or plugin configuration.
 
 ## Repository layout
 
-```
+```text
 hardkoded-skills/
-├── template/          # Scaffolding – copy this to create a new skill
-│   ├── src/
-│   │   └── index.ts   # MCP server with example tools, resources, and prompts
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── README.md
-├── configs/           # Platform connection snippets (Claude, Cursor, Copilot)
-│   ├── claude-desktop.json
-│   ├── cursor-mcp.json
-│   ├── vscode-mcp.json
-│   └── README.md
-└── skills/            # Individual skills live here (one directory per skill)
+└── skills/
+    └── hardkoded-skills/
+        └── SKILL.md
 ```
 
----
+## Skill format
 
-## Creating a new skill
+Each skill lives in its own directory and is described with a `SKILL.md` file.
 
-### 1. Copy the template
+A skill should explain:
 
-```bash
-cp -r template skills/my-awesome-skill
-cd skills/my-awesome-skill
-```
+- what the skill does
+- when it should be used
+- how the assistant should respond
+- any output format or constraints
 
-### 2. Rename the skill
+## Included example
 
-Edit `package.json` — change the `name` field to your skill name.  
-Do the same for the `name` field inside `src/index.ts`.
-
-### 3. Install dependencies
-
-```bash
-npm install
-```
-
-### 4. Implement your tools
-
-Open `src/index.ts` and register your tools, resources, and prompts:
-
-```typescript
-server.registerTool(
-  "my-tool",
-  {
-    title: "My tool",
-    description: "What this tool does",
-    inputSchema: {
-      param: z.string().describe("Parameter description"),
-    },
-  },
-  async ({ param }) => ({
-    content: [{ type: "text", text: `Result for: ${param}` }],
-  })
-);
-```
-
-### 5. Build
-
-```bash
-npm run build   # outputs to dist/index.js
-```
-
-### 6. Connect to your AI assistant
-
-See [`configs/README.md`](configs/README.md) for platform-specific instructions.
-
----
-
-## MCP concepts
-
-| Concept | Description |
-|---|---|
-| **Tool** | An action the AI can execute on your behalf (API call, computation, side effect) |
-| **Resource** | Read-only data the AI can surface to the user |
-| **Prompt** | A reusable message template for consistent AI interactions |
-
----
-
-## Requirements
-
-- Node.js ≥ 18
-- npm ≥ 9
-
----
+`skills/hardkoded-skills/SKILL.md` contains a small brainstorming skill that generates random project ideas.
 
 ## License
 
