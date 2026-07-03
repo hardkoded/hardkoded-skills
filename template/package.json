@@ -1,0 +1,37 @@
+{
+  "name": "my-hardkoded-skill",
+  "version": "0.1.0",
+  "description": "A hardkoded skill powered by the Model Context Protocol",
+  "type": "module",
+  "bin": {
+    "my-hardkoded-skill": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "prepare": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "mcp",
+    "hardkoded",
+    "skill",
+    "claude",
+    "copilot",
+    "cursor",
+    "codex"
+  ],
+  "license": "MIT"
+}

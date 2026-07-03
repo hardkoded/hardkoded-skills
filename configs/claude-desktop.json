@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "my-hardkoded-skill": {
+      "command": "node",
+      "args": ["/absolute/path/to/skills/my-hardkoded-skill/dist/index.js"],
+      "env": {}
+    }
+  }
+}

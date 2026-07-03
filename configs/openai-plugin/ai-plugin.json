@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "My Hardkoded Skill",
+  "name_for_model": "my_hardkoded_skill",
+  "description_for_human": "A hardkoded skill that provides useful tools and data to AI assistants.",
+  "description_for_model": "Use this plugin to access tools provided by the my-hardkoded-skill server. Available tools are listed in the OpenAPI spec. Call the appropriate endpoint based on the user's request.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://your-skill-domain.com/openapi.yaml"
+  },
+  "logo_url": "https://your-skill-domain.com/logo.png",
+  "contact_email": "contact@your-skill-domain.com",
+  "legal_info_url": "https://your-skill-domain.com/legal"
+}

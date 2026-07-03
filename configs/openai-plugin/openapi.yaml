@@ -1,0 +1,82 @@
+openapi: "3.1.0"
+info:
+  title: My Hardkoded Skill API
+  description: |
+    Exposes the tools provided by the my-hardkoded-skill MCP server as HTTP
+    endpoints so they can be used as an OpenAI / Codex plugin.
+  version: "0.1.0"
+servers:
+  - url: https://your-skill-domain.com
+    description: Production server
+
+paths:
+  /tools/echo:
+    post:
+      operationId: echo
+      summary: Echo a message
+      description: Echoes the provided message back. Use this to verify the skill is working.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EchoRequest"
+      responses:
+        "200":
+          description: The echoed message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextResponse"
+
+  /tools/add:
+    post:
+      operationId: add
+      summary: Add two numbers
+      description: Returns the sum of two numbers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddRequest"
+      responses:
+        "200":
+          description: The sum of the two numbers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextResponse"
+
+components:
+  schemas:
+    EchoRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: The message to echo back
+
+    AddRequest:
+      type: object
+      required:
+        - a
+        - b
+      properties:
+        a:
+          type: number
+          description: First number
+        b:
+          type: number
+          description: Second number
+
+    TextResponse:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: string
+          description: The text result of the operation
