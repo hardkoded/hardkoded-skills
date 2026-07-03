@@ -9,7 +9,6 @@ Each skill in this repo is an MCP server that works with multiple AI assistants 
 | **Claude** (Desktop / claude.ai) | MCP stdio server |
 | **GitHub Copilot** (VS Code) | MCP stdio / HTTP server |
 | **Cursor** | MCP stdio server |
-| **OpenAI / Codex** | Plugin manifest + OpenAPI spec |
 
 ---
 
@@ -23,13 +22,10 @@ hardkoded-skills/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── README.md
-├── configs/           # Platform connection snippets (Claude, Cursor, Copilot, OpenAI)
+├── configs/           # Platform connection snippets (Claude, Cursor, Copilot)
 │   ├── claude-desktop.json
 │   ├── cursor-mcp.json
 │   ├── vscode-mcp.json
-│   ├── openai-plugin/
-│   │   ├── ai-plugin.json
-│   │   └── openapi.yaml
 │   └── README.md
 └── skills/            # Individual skills live here (one directory per skill)
 ```
