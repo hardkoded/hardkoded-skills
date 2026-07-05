@@ -10,12 +10,10 @@
   "license": "MIT",
   "keywords": [
     "skills",
-    "brainstorming",
-    "ideas",
-    "projects",
     "cron",
     "scheduler",
-    "automation"
+    "automation",
+    "task-management"
   ],
   "skills": "plugins/hardkoded/skills/"
 }
