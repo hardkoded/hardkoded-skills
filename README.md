@@ -2,9 +2,13 @@
 
 A collection of skills by [hardkoded](https://www.hardkoded.com/) packaged as plugins for Claude, Cursor, GitHub Copilot, and Codex.
 
-## Included skill
+## Included skills
 
-`hardkoded-skills` helps users brainstorm random software project ideas.
+- `hardkoded-skills` helps users brainstorm random software project ideas.
+- `cronito` is a self-contained interactive CLI for managing scheduled tasks
+  on your machine, backed by a single system cron entry. No global install,
+  no external repo — just a bundled script inside the skill folder. Run
+  `/cronito init` once to set it up.
 
 ## Installation
 
@@ -47,11 +51,21 @@ hardkoded-skills/
 │       ├── .cursor-plugin/plugin.json
 │       ├── .codex-plugin/plugin.json
 │       └── skills/
-│           └── hardkoded-skills/
-│               └── SKILL.md
+│           ├── hardkoded-skills/
+│           │   └── SKILL.md
+│           └── cronito/
+│               ├── SKILL.md
+│               ├── cronito.sh
+│               ├── dist/cronito.cjs
+│               └── src/
 └── skills/
-    └── hardkoded-skills/
-        └── SKILL.md
+    ├── hardkoded-skills/
+    │   └── SKILL.md
+    └── cronito/
+        ├── SKILL.md
+        ├── cronito.sh
+        ├── dist/cronito.cjs
+        └── src/
 ```
 
 ## License

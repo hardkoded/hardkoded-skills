@@ -12,7 +12,7 @@
     {
       "name": "hardkoded",
       "source": "./plugins/hardkoded",
-      "description": "Generate practical random software project ideas."
+      "description": "Generate practical random software project ideas, and cronito, a self-contained scheduled-task manager."
     }
   ]
 }

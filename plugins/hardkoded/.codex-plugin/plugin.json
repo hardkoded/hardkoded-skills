@@ -13,12 +13,15 @@
     "skills",
     "brainstorming",
     "ideas",
-    "projects"
+    "projects",
+    "cron",
+    "scheduler",
+    "automation"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "hardkoded",
-    "shortDescription": "Generate practical software project ideas.",
+    "shortDescription": "Generate practical software project ideas, and manage scheduled tasks with cronito.",
     "longDescription": "Useful skills made by hardkoded",
     "developerName": "hardkoded",
     "category": "Productivity",
@@ -27,7 +30,8 @@
     ],
     "websiteURL": "https://www.hardkoded.com/",
     "defaultPrompt": [
-      "Give me 5 random project ideas for developers"
+      "Give me 5 random project ideas for developers",
+      "Set up cronito and add a scheduled task"
     ]
   }
 }

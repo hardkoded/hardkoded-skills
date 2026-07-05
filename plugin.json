@@ -12,7 +12,10 @@
     "skills",
     "brainstorming",
     "ideas",
-    "projects"
+    "projects",
+    "cron",
+    "scheduler",
+    "automation"
   ],
   "skills": "plugins/hardkoded/skills/"
 }
