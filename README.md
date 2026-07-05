@@ -2,12 +2,15 @@
 
 A collection of skills by [hardkoded](https://www.hardkoded.com/) packaged as plugins for Claude, Cursor, GitHub Copilot, and Codex.
 
-## Included skill
+## Included skills
 
-`cronito` is a self-contained interactive CLI for managing scheduled tasks on
-your machine, backed by a single system cron entry. No global install, no
-external repo — just a bundled script inside the skill folder. Run
-`/cronito init` once to set it up.
+This is a growing collection — more skills will land here over time.
+Currently:
+
+- `cronito` — a self-contained interactive CLI for managing scheduled tasks
+  on your machine, backed by a single system cron entry. No global install,
+  no external repo — just a bundled script inside the skill folder. Run
+  `/cronito init` once to set it up.
 
 ## Installation
 

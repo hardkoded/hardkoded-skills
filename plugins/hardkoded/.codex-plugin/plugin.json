@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "hardkoded",
-    "shortDescription": "Manage scheduled tasks on your machine with cronito.",
+    "shortDescription": "A growing collection of skills by hardkoded, currently featuring cronito for scheduled tasks.",
     "longDescription": "Useful skills made by hardkoded",
     "developerName": "hardkoded",
     "category": "Productivity",
