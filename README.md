@@ -48,25 +48,23 @@ hardkoded-skills/
 ├── .claude-plugin/marketplace.json
 ├── .cursor-plugin/marketplace.json
 ├── plugin.json
-├── plugins/
-│   └── hardkoded/
-│       ├── .claude-plugin/plugin.json
-│       ├── .cursor-plugin/plugin.json
-│       ├── .codex-plugin/plugin.json
-│       └── skills/
-│           └── cronito/
-│               ├── SKILL.md
-│               ├── cronito.sh
-│               └── dist/cronito.cjs
-└── skills/
-    └── cronito/
-        ├── SKILL.md
-        ├── cronito.sh
-        └── dist/cronito.cjs
+└── plugins/
+    └── hardkoded/
+        ├── .claude-plugin/plugin.json
+        ├── .cursor-plugin/plugin.json
+        ├── .codex-plugin/plugin.json
+        └── skills/
+            └── cronito/
+                ├── SKILL.md
+                ├── cronito.sh
+                └── dist/cronito.cjs
 ```
 
-Each skill here only ships its built artifact — source lives in its own
-repo (e.g. [hardkoded/cronito](https://github.com/hardkoded/cronito)).
+Every install path above (Claude, Cursor, Copilot, Codex) resolves skills
+through a plugin manifest's `"skills"` field, which points at
+`plugins/hardkoded/skills/` — that's the single copy of each skill in this
+repo. Each skill only ships its built artifact here — source lives in its
+own repo (e.g. [hardkoded/cronito](https://github.com/hardkoded/cronito)).
 
 ## License
 
