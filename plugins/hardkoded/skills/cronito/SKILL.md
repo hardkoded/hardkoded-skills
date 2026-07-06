@@ -2,8 +2,8 @@
 name: cronito
 description: |
   Interactive CLI for managing scheduled tasks on your machine, backed by a
-  single system cron entry. Fully self-contained — no global npm install, no
-  external repo, just a bundled script inside this skill folder.
+  single system cron entry. This skill vendors a prebuilt, dependency-free
+  bundle — no npm install needed to use it. Source: github.com/hardkoded/cronito.
   Use when the user says "/cronito", "schedule a task", "list scheduled
   tasks", "cronito status/add/list/edit/remove/logs/dashboard/health", or
   wants to set up recurring local automation.
@@ -14,12 +14,14 @@ description: |
 Interactive CLI for managing scheduled tasks on your machine. Replaces
 scattered `crontab -e` entries with one unified, user-friendly interface.
 
+cronito is open source: **[github.com/hardkoded/cronito](https://github.com/hardkoded/cronito)**.
+This skill folder vendors a prebuilt copy of it (`dist/cronito.cjs`, a single
+dependency-free bundle) — there's nothing to install and no `bin/` entry
+point to wire up.
+
 ## How this skill is invoked
 
-This skill ships its own runnable code — `dist/cronito.cjs`, a single
-dependency-free bundle — plus a wrapper script. There is nothing to install
-globally and no `bin/` entry point. Always call the wrapper by absolute path,
-next to this file:
+Always call the wrapper by absolute path, next to this file:
 
 ```
 bash <skill-dir>/cronito.sh <command> [args]
@@ -121,11 +123,8 @@ non-macOS platforms.
 
 ## Development
 
-Source lives in `src/`. To rebuild the bundle after changing source:
-
-```
-cd <skill-dir> && npm install && npm run build
-```
-
-This regenerates `dist/cronito.cjs`. Only that bundle is needed at runtime —
-`node_modules/`, `src/`, and the TypeScript toolchain are build-time only.
+This skill folder only carries the built artifact. Source, build tooling,
+and issue tracking live at
+[github.com/hardkoded/cronito](https://github.com/hardkoded/cronito). To
+pick up a change from there, rebuild and copy the new `dist/cronito.cjs`
+over the one in this skill folder.

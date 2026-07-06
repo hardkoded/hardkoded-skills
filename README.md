@@ -7,10 +7,11 @@ A collection of skills by [hardkoded](https://www.hardkoded.com/) packaged as pl
 This is a growing collection — more skills will land here over time.
 Currently:
 
-- `cronito` — a self-contained interactive CLI for managing scheduled tasks
-  on your machine, backed by a single system cron entry. No global install,
-  no external repo — just a bundled script inside the skill folder. Run
-  `/cronito init` once to set it up.
+- `cronito` — an interactive CLI for managing scheduled tasks on your
+  machine, backed by a single system cron entry. This skill vendors a
+  prebuilt, dependency-free bundle, so there's nothing to install to use it.
+  Source lives at [hardkoded/cronito](https://github.com/hardkoded/cronito).
+  Run `/cronito init` once to set it up.
 
 ## Installation
 
@@ -56,15 +57,16 @@ hardkoded-skills/
 │           └── cronito/
 │               ├── SKILL.md
 │               ├── cronito.sh
-│               ├── dist/cronito.cjs
-│               └── src/
+│               └── dist/cronito.cjs
 └── skills/
     └── cronito/
         ├── SKILL.md
         ├── cronito.sh
-        ├── dist/cronito.cjs
-        └── src/
+        └── dist/cronito.cjs
 ```
+
+Each skill here only ships its built artifact — source lives in its own
+repo (e.g. [hardkoded/cronito](https://github.com/hardkoded/cronito)).
 
 ## License
 
