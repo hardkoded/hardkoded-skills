@@ -2,9 +2,16 @@
 
 A collection of skills by [hardkoded](https://www.hardkoded.com/) packaged as plugins for Claude, Cursor, GitHub Copilot, and Codex.
 
-## Included skill
+## Included skills
 
-`hardkoded-skills` helps users brainstorm random software project ideas.
+This is a growing collection — more skills will land here over time.
+Currently:
+
+- `cronito` — an interactive CLI for managing scheduled tasks on your
+  machine, backed by a single system cron entry. This skill vendors a
+  prebuilt, dependency-free bundle, so there's nothing to install to use it.
+  Source lives at [hardkoded/cronito](https://github.com/hardkoded/cronito).
+  Run `/cronito init` once to set it up.
 
 ## Installation
 
@@ -41,18 +48,23 @@ hardkoded-skills/
 ├── .claude-plugin/marketplace.json
 ├── .cursor-plugin/marketplace.json
 ├── plugin.json
-├── plugins/
-│   └── hardkoded/
-│       ├── .claude-plugin/plugin.json
-│       ├── .cursor-plugin/plugin.json
-│       ├── .codex-plugin/plugin.json
-│       └── skills/
-│           └── hardkoded-skills/
-│               └── SKILL.md
-└── skills/
-    └── hardkoded-skills/
-        └── SKILL.md
+└── plugins/
+    └── hardkoded/
+        ├── .claude-plugin/plugin.json
+        ├── .cursor-plugin/plugin.json
+        ├── .codex-plugin/plugin.json
+        └── skills/
+            └── cronito/
+                ├── SKILL.md
+                ├── cronito.sh
+                └── dist/cronito.cjs
 ```
+
+Every install path above (Claude, Cursor, Copilot, Codex) resolves skills
+through a plugin manifest's `"skills"` field, which points at
+`plugins/hardkoded/skills/` — that's the single copy of each skill in this
+repo. Each skill only ships its built artifact here — source lives in its
+own repo (e.g. [hardkoded/cronito](https://github.com/hardkoded/cronito)).
 
 ## License
 

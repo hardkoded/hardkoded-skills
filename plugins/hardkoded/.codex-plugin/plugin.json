@@ -11,14 +11,15 @@
   "license": "MIT",
   "keywords": [
     "skills",
-    "brainstorming",
-    "ideas",
-    "projects"
+    "cron",
+    "scheduler",
+    "automation",
+    "task-management"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "hardkoded",
-    "shortDescription": "Generate practical software project ideas.",
+    "shortDescription": "A growing collection of skills by hardkoded, currently featuring cronito for scheduled tasks.",
     "longDescription": "Useful skills made by hardkoded",
     "developerName": "hardkoded",
     "category": "Productivity",
@@ -27,7 +28,7 @@
     ],
     "websiteURL": "https://www.hardkoded.com/",
     "defaultPrompt": [
-      "Give me 5 random project ideas for developers"
+      "Set up cronito and add a scheduled task"
     ]
   }
 }
