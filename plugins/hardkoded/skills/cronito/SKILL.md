@@ -115,13 +115,18 @@ On `/cronito start-loop`:
    - If the entry included `prepOutput`, use it instead of recomputing —
      tell the user "a headless prep pass already computed this, reviewing
      it now" and go straight to the parts that need a human.
-   - Time how long the execution took, then run
+   - Before executing the prompt, run `bash -c 'date +%s%3N'` to get a
+     start timestamp (milliseconds since epoch). After it finishes, run
+     `bash -c 'date +%s%3N'` again and subtract to get the elapsed `--duration`,
+     then run
      `bash <skill-dir>/cronito.sh complete <taskId> --status=success --duration=<ms elapsed>`
      (or `--status=failure --duration=<ms> --error="<message>"` if it failed).
 3. If it returns no tasks, don't narrate an empty poll — just move on.
-4. Call `ScheduleWakeup` with `delaySeconds: 270` and
-   `prompt: "/cronito start-loop"` to re-enter this same skill next tick.
-   270 seconds (not 300) keeps it inside the prompt-cache window.
+4. Call `ScheduleWakeup` with `delaySeconds: 270`, `prompt: "/cronito start-loop"`,
+   and a `reason` (e.g. "polling cronito for due approval-needed tasks") to
+   re-enter this same skill next tick. `reason` is required alongside
+   `delaySeconds`/`prompt` — don't omit it. 270 seconds (not 300) keeps it
+   inside the prompt-cache window.
 5. Stop when the user says so, or via `ScheduleWakeup({ stop: true })`.
 
 **Error handling:** if executing a claimed prompt fails, still call
