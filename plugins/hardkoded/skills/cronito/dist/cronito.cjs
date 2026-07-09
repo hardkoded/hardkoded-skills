@@ -47187,6 +47187,7 @@ var require_dayjs_min = __commonJS({
 // src/executor.ts
 var executor_exports = {};
 __export(executor_exports, {
+  augmentPathForHeadlessClaude: () => augmentPathForHeadlessClaude,
   buildHeadlessPromptCommand: () => buildHeadlessPromptCommand,
   executeCommand: () => executeCommand,
   executePromptHeadless: () => executePromptHeadless,
@@ -47229,9 +47230,15 @@ function buildHeadlessPromptCommand(prompt, model, allowedTools) {
   const escapedPrompt = prompt.replace(/'/g, `'\\''`);
   return `claude -p '${escapedPrompt}' --model ${model} --allowedTools "${allowedTools}"`;
 }
+function augmentPathForHeadlessClaude(existingPath) {
+  const extraDirs = [import_path2.default.join(import_os2.default.homedir(), ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin"];
+  const currentDirs = existingPath ? existingPath.split(import_path2.default.delimiter) : [];
+  const merged = [...extraDirs, ...currentDirs].filter((dir, index, all) => dir && all.indexOf(dir) === index);
+  return merged.join(import_path2.default.delimiter);
+}
 async function executePromptHeadless(prompt, model = "sonnet", allowedTools = "Bash Read Grep Glob", cwd = process.cwd()) {
   const startTime = Date.now();
-  const env2 = { ...process.env };
+  const env2 = { ...process.env, PATH: augmentPathForHeadlessClaude(process.env.PATH) };
   if (import_fs_extra2.default.existsSync(CRON_OAUTH_TOKEN_PATH)) {
     env2.CLAUDE_CODE_OAUTH_TOKEN = import_fs_extra2.default.readFileSync(CRON_OAUTH_TOKEN_PATH, "utf-8").trim();
   }
