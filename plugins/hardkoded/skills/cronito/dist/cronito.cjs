@@ -47187,8 +47187,10 @@ var require_dayjs_min = __commonJS({
 // src/executor.ts
 var executor_exports = {};
 __export(executor_exports, {
+  DEFAULT_HEADLESS_ALLOWED_TOOLS: () => DEFAULT_HEADLESS_ALLOWED_TOOLS,
+  DEFAULT_HEADLESS_MODEL: () => DEFAULT_HEADLESS_MODEL,
   augmentPathForHeadlessClaude: () => augmentPathForHeadlessClaude,
-  buildHeadlessPromptCommand: () => buildHeadlessPromptCommand,
+  buildHeadlessPromptArgs: () => buildHeadlessPromptArgs,
   executeCommand: () => executeCommand,
   executePromptHeadless: () => executePromptHeadless,
   getExecutionHistory: () => getExecutionHistory,
@@ -47226,9 +47228,8 @@ async function executeCommand(command, cwd = process.cwd()) {
     };
   }
 }
-function buildHeadlessPromptCommand(prompt, model, allowedTools) {
-  const escapedPrompt = prompt.replace(/'/g, `'\\''`);
-  return `claude -p '${escapedPrompt}' --model ${model} --allowedTools "${allowedTools}"`;
+function buildHeadlessPromptArgs(prompt, model, allowedTools) {
+  return ["-p", prompt, "--model", model, "--allowedTools", allowedTools];
 }
 function augmentPathForHeadlessClaude(existingPath) {
   const extraDirs = [import_path2.default.join(import_os2.default.homedir(), ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin"];
@@ -47236,14 +47237,14 @@ function augmentPathForHeadlessClaude(existingPath) {
   const merged = [...extraDirs, ...currentDirs].filter((dir, index, all) => dir && all.indexOf(dir) === index);
   return merged.join(import_path2.default.delimiter);
 }
-async function executePromptHeadless(prompt, model = "sonnet", allowedTools = "Bash Read Grep Glob", cwd = process.cwd()) {
+async function executePromptHeadless(prompt, model = DEFAULT_HEADLESS_MODEL, allowedTools = DEFAULT_HEADLESS_ALLOWED_TOOLS, cwd = process.cwd()) {
   const startTime = Date.now();
   const env2 = { ...process.env, PATH: augmentPathForHeadlessClaude(process.env.PATH) };
   if (import_fs_extra2.default.existsSync(CRON_OAUTH_TOKEN_PATH)) {
     env2.CLAUDE_CODE_OAUTH_TOKEN = import_fs_extra2.default.readFileSync(CRON_OAUTH_TOKEN_PATH, "utf-8").trim();
   }
   try {
-    const { stdout, stderr } = await execAsync(buildHeadlessPromptCommand(prompt, model, allowedTools), {
+    const { stdout, stderr } = await execFileAsync("claude", buildHeadlessPromptArgs(prompt, model, allowedTools), {
       cwd,
       env: env2,
       timeout: 36e5,
@@ -47287,7 +47288,7 @@ async function getExecutionHistory(taskId, limit = 50) {
     }
   }).filter((log) => log !== null).filter((log) => !taskId || log.taskId === taskId).reverse().slice(0, limit);
 }
-var import_child_process, import_util, import_os2, import_path2, import_fs_extra2, execAsync, CRON_OAUTH_TOKEN_PATH;
+var import_child_process, import_util, import_os2, import_path2, import_fs_extra2, execAsync, execFileAsync, CRON_OAUTH_TOKEN_PATH, DEFAULT_HEADLESS_MODEL, DEFAULT_HEADLESS_ALLOWED_TOOLS;
 var init_executor = __esm({
   "src/executor.ts"() {
     "use strict";
@@ -47298,7 +47299,10 @@ var init_executor = __esm({
     import_fs_extra2 = __toESM(require_lib3(), 1);
     init_config();
     execAsync = (0, import_util.promisify)(import_child_process.exec);
+    execFileAsync = (0, import_util.promisify)(import_child_process.execFile);
     CRON_OAUTH_TOKEN_PATH = import_path2.default.join(import_os2.default.homedir(), ".claude", "cron-oauth-token");
+    DEFAULT_HEADLESS_MODEL = "sonnet";
+    DEFAULT_HEADLESS_ALLOWED_TOOLS = "Bash Read Grep Glob";
   }
 });
 
@@ -52400,7 +52404,7 @@ init_executor();
 // src/notifier.ts
 var import_child_process2 = require("child_process");
 var import_util2 = require("util");
-var execFileAsync = (0, import_util2.promisify)(import_child_process2.execFile);
+var execFileAsync2 = (0, import_util2.promisify)(import_child_process2.execFile);
 function escapeForAppleScript(value) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
@@ -52418,7 +52422,7 @@ async function sendMacNotification(title, message, subtitle) {
     parts.push(`subtitle "${escapeForAppleScript(subtitle)}"`);
   }
   try {
-    await execFileAsync("osascript", ["-e", parts.join(" ")]);
+    await execFileAsync2("osascript", ["-e", parts.join(" ")]);
   } catch {
   }
 }
@@ -52807,17 +52811,22 @@ var import_fs_extra4 = __toESM(require_lib3(), 1);
 init_config();
 init_executor();
 var GRACE_WINDOW_MS = 2 * 60 * 1e3;
+function currentWindow(task, now) {
+  const window2 = getCronWindow(task.cron, now);
+  if (!window2) return null;
+  if (now.getTime() >= window2.nextExpectedRun.getTime()) return null;
+  return window2;
+}
 async function getPendingApprovalTasks() {
   const tasks = await getAllTasks();
   const now = /* @__PURE__ */ new Date();
   const pending = [];
   for (const task of tasks) {
     if (!task.enabled || !task.requiresLiveSession || !task.prompt) continue;
-    const window2 = getCronWindow(task.cron, now);
+    const window2 = currentWindow(task, now);
     if (!window2) continue;
     const windowKey = window2.lastExpectedRun.toISOString();
     if (task.lastClaimedAt === windowKey) continue;
-    if (now.getTime() >= window2.nextExpectedRun.getTime()) continue;
     await updateTask(task.id, { lastClaimedAt: windowKey });
     pending.push({
       id: task.id,
@@ -52857,8 +52866,8 @@ async function runHeadlessPrep(task, windowKey) {
   const startTime = Date.now();
   const result = await executePromptHeadless(
     task.prepPrompt,
-    task.prepModel ?? "sonnet",
-    task.prepAllowedTools ?? "Bash Read Grep Glob",
+    task.prepModel ?? DEFAULT_HEADLESS_MODEL,
+    task.prepAllowedTools ?? DEFAULT_HEADLESS_ALLOWED_TOOLS,
     task.pwd
   );
   import_fs_extra4.default.outputFileSync(
@@ -52882,18 +52891,34 @@ ${result.stderr}`
     error: result.error
   });
 }
+function parseDurationMs(raw) {
+  const parsed = parseInt(raw, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+function validateLiveSessionCron(cron) {
+  const window2 = getCronWindow(cron);
+  if (!window2) return { valid: true };
+  const intervalMs = window2.nextExpectedRun.getTime() - window2.lastExpectedRun.getTime();
+  if (intervalMs <= GRACE_WINDOW_MS) {
+    return {
+      valid: false,
+      error: `This cron fires more often than every ${GRACE_WINDOW_MS / 6e4} minutes \u2014 a live-session task needs at least that long between occurrences, or an unclaimed one is superseded before its notification/prep fallback can run.`
+    };
+  }
+  return { valid: true };
+}
 async function checkApprovalFallbacks() {
   const tasks = await getAllTasks();
   const now = /* @__PURE__ */ new Date();
   for (const task of tasks) {
     if (!task.enabled || !task.requiresLiveSession) continue;
-    const window2 = getCronWindow(task.cron, now);
+    const window2 = currentWindow(task, now);
     if (!window2) continue;
     const msSinceExpected = now.getTime() - window2.lastExpectedRun.getTime();
     if (msSinceExpected < GRACE_WINDOW_MS) continue;
-    if (now.getTime() >= window2.nextExpectedRun.getTime()) continue;
     const windowKey = window2.lastExpectedRun.toISOString();
     if (task.lastHandledWindow === windowKey) continue;
+    if (task.lastClaimedAt === windowKey) continue;
     await updateTask(task.id, { lastHandledWindow: windowKey });
     await notifyApprovalTaskDue(task);
     if (task.prepPrompt) {
@@ -52998,13 +53023,19 @@ program2.command("complete <taskId>").description("Record the result of a live-s
       process.exit(1);
       return;
     }
+    const durationMs = parseDurationMs(options.duration);
+    if (durationMs === null) {
+      console.error(source_default.red(`Invalid --duration: ${options.duration} (expected a number of milliseconds)`));
+      process.exit(1);
+      return;
+    }
     const task = await getTask(taskId);
     if (!task) {
       console.error(source_default.red(`Task not found: ${taskId}`));
       process.exit(1);
       return;
     }
-    await completeApprovalTask(taskId, options.status, parseInt(options.duration, 10), options.error);
+    await completeApprovalTask(taskId, options.status, durationMs, options.error);
     console.log(source_default.green(`\u2713 Recorded ${options.status} for "${task.name}"`));
   } catch (error) {
     console.error(source_default.red("Error completing task:"), error);
@@ -53057,25 +53088,33 @@ program2.command("add").description("Add a new scheduled task").action(async () 
         type: "list",
         name: "cronPreset",
         message: "When should it run?",
-        choices: [
-          { name: "Every minute", value: "* * * * *" },
-          { name: "Every 5 minutes", value: "*/5 * * * *" },
-          { name: "Every 15 minutes", value: "*/15 * * * *" },
-          { name: "Every 30 minutes", value: "*/30 * * * *" },
-          { name: "Every hour", value: "0 * * * *" },
-          { name: "Daily at 9 AM", value: "0 9 * * *" },
-          { name: "Every Monday at 8 AM", value: "0 8 * * 1" },
-          { name: "Custom cron expression", value: "custom" }
-        ]
+        choices: (a) => {
+          const presets = [
+            { name: "Every minute", value: "* * * * *" },
+            { name: "Every 5 minutes", value: "*/5 * * * *" },
+            { name: "Every 15 minutes", value: "*/15 * * * *" },
+            { name: "Every 30 minutes", value: "*/30 * * * *" },
+            { name: "Every hour", value: "0 * * * *" },
+            { name: "Daily at 9 AM", value: "0 9 * * *" },
+            { name: "Every Monday at 8 AM", value: "0 8 * * 1" },
+            { name: "Custom cron expression", value: "custom" }
+          ];
+          return a.requiresLiveSession ? presets.filter((p) => p.value !== "* * * * *") : presets;
+        }
       },
       {
         type: "input",
         name: "cron",
         message: "Enter cron expression (minute, hour, day, month, day-of-week):",
         when: (answers2) => answers2.cronPreset === "custom",
-        validate: (val) => {
+        validate: (val, answers2) => {
           const result = validateCronExpression(val);
-          return result.valid ? true : result.error || "Invalid cron expression";
+          if (!result.valid) return result.error || "Invalid cron expression";
+          if (answers2?.requiresLiveSession) {
+            const liveSessionResult = validateLiveSessionCron(val);
+            if (!liveSessionResult.valid) return liveSessionResult.error || "Invalid cron expression";
+          }
+          return true;
         }
       },
       {
@@ -53182,9 +53221,14 @@ program2.command("edit <taskId>").description("Edit an existing task").action(as
         name: "cron",
         message: "Cron expression:",
         default: task.cron,
-        validate: (val) => {
+        validate: (val, answers2) => {
           const result = validateCronExpression(val);
-          return result.valid ? true : result.error || "Invalid cron expression";
+          if (!result.valid) return result.error || "Invalid cron expression";
+          if (answers2?.requiresLiveSession) {
+            const liveSessionResult = validateLiveSessionCron(val);
+            if (!liveSessionResult.valid) return liveSessionResult.error || "Invalid cron expression";
+          }
+          return true;
         }
       },
       {
