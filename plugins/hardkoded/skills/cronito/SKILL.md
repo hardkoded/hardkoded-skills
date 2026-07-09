@@ -108,19 +108,18 @@ process, survives context compaction.
 On `/cronito start-loop`:
 
 1. Run `bash <skill-dir>/cronito.sh pending-approval-prompts`.
-2. If it returns tasks, for each one:
-   - Execute its `prompt` exactly as if you'd typed it yourself — invoke the
-     named skill/slash-command, do the real work, ask the user for
-     approval/input wherever that skill would normally ask.
-   - If the entry included `prepOutput`, use it instead of recomputing —
-     tell the user "a headless prep pass already computed this, reviewing
-     it now" and go straight to the parts that need a human.
-   - Before executing the prompt, run `bash -c 'date +%s%3N'` to get a
-     start timestamp (milliseconds since epoch). After it finishes, run
-     `bash -c 'date +%s%3N'` again and subtract to get the elapsed `--duration`,
-     then run
-     `bash <skill-dir>/cronito.sh complete <taskId> --status=success --duration=<ms elapsed>`
-     (or `--status=failure --duration=<ms> --error="<message>"` if it failed).
+2. If it returns tasks, for each one, in this order:
+   1. Run `bash -c 'date +%s%3N'` to note a start timestamp (milliseconds since epoch).
+   2. If the entry included `prepOutput`, use it instead of recomputing —
+      tell the user "a headless prep pass already computed this, reviewing
+      it now" and go straight to the parts that need a human.
+   3. Execute its `prompt` exactly as if you'd typed it yourself — invoke the
+      named skill/slash-command, do the real work, ask the user for
+      approval/input wherever that skill would normally ask.
+   4. Run `bash -c 'date +%s%3N'` again and subtract the start timestamp to
+      get the elapsed `--duration`, then run
+      `bash <skill-dir>/cronito.sh complete <taskId> --status=success --duration=<ms elapsed>`
+      (or `--status=failure --duration=<ms> --error="<message>"` if it failed).
 3. If it returns no tasks, don't narrate an empty poll — just move on.
 4. Call `ScheduleWakeup` with `delaySeconds: 270`, `prompt: "/cronito start-loop"`,
    and a `reason` (e.g. "polling cronito for due approval-needed tasks") to
