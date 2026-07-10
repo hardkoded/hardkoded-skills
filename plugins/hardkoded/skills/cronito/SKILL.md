@@ -5,8 +5,8 @@ description: |
   single system cron entry. This skill vendors a prebuilt, dependency-free
   bundle — no npm install needed to use it. Source: github.com/hardkoded/cronito.
   Use when the user says "/cronito", "schedule a task", "list scheduled
-  tasks", "cronito status/add/list/edit/remove/logs/dashboard/health", or
-  wants to set up recurring local automation.
+  tasks", "cronito status/add/list/edit/remove/logs/dashboard/health/start-loop",
+  or wants to set up recurring local automation.
 ---
 
 # cronito
@@ -85,6 +85,55 @@ Run this once per machine:
 **dashboard** — Comprehensive metrics view (runs, success rate, stalled tasks)
 
 **health** — Quick health check (config, recent executions, failure rate, stalled tasks)
+
+**pending-approval-prompts** — List due tasks awaiting a live session
+- Used internally by `/cronito start-loop` (see below) — not typically run by hand
+- Prints JSON: `[{ id, name, prompt, dueSince, prepOutput? }]`
+
+**complete `<taskId>` --status `<success|failure>` [--duration `<ms>`] [--error `<message>`]** — Record a live-session run's result
+- Used internally by `/cronito start-loop` after it executes a claimed prompt
+
+## /cronito start-loop
+
+Some tasks need a live, already-authenticated Claude Code session instead of
+running headlessly — e.g. anything that must ask you for approval before
+taking an action. These are tasks created with `requiresLiveSession: true`
+(via `cronito add`, when you answer yes to "Does this need a live Claude
+Code session to run?").
+
+`/cronito start-loop` turns this session into a poller for those tasks,
+using `ScheduleWakeup` the same way the `/loop` skill does — no separate
+process, survives context compaction.
+
+On `/cronito start-loop`:
+
+1. Run `bash <skill-dir>/cronito.sh pending-approval-prompts`.
+2. If it returns tasks, for each one, in this order:
+   1. Run `bash -c 'date +%s%3N'` to note a start timestamp (milliseconds since epoch).
+   2. If the entry included `prepOutput`, use it instead of recomputing —
+      tell the user "a headless prep pass already computed this, reviewing
+      it now" and go straight to the parts that need a human.
+   3. Execute its `prompt` exactly as if you'd typed it yourself — invoke the
+      named skill/slash-command, do the real work, ask the user for
+      approval/input wherever that skill would normally ask.
+   4. Run `bash -c 'date +%s%3N'` again and subtract the start timestamp to
+      get the elapsed `--duration`, then run
+      `bash <skill-dir>/cronito.sh complete <taskId> --status=success --duration=<ms elapsed>`
+      (or `--status=failure --duration=<ms> --error="<message>"` if it failed).
+3. If it returns no tasks, don't narrate an empty poll — just move on.
+4. Call `ScheduleWakeup` with `delaySeconds: 270`, `prompt: "/cronito start-loop"`,
+   and a `reason` (e.g. "polling cronito for due approval-needed tasks") to
+   re-enter this same skill next tick. `reason` is required alongside
+   `delaySeconds`/`prompt` — don't omit it. 270 seconds (not 300) keeps it
+   inside the prompt-cache window.
+5. Stop when the user says so, or via `ScheduleWakeup({ stop: true })`.
+
+**Error handling:** if executing a claimed prompt fails, still call
+`cronito complete --status=failure --error=<msg>` before continuing — a
+failed run must not wedge the loop or vanish from `cronito logs` silently.
+If `pending-approval-prompts` itself errors (cronito crash, corrupt
+config), skip this tick and still schedule the next wakeup — a transient
+cronito bug shouldn't kill the loop.
 
 ## Schedule Formats (Cron)
 
