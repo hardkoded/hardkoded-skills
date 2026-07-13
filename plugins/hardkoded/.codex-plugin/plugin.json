@@ -14,7 +14,10 @@
     "cron",
     "scheduler",
     "automation",
-    "task-management"
+    "task-management",
+    "pull-requests",
+    "session-memory",
+    "handoff"
   ],
   "skills": "./skills/",
   "interface": {

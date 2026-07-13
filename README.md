@@ -12,6 +12,12 @@ Currently:
   prebuilt, dependency-free bundle, so there's nothing to install to use it.
   Source lives at [hardkoded/cronito](https://github.com/hardkoded/cronito).
   Run `/cronito init` once to set it up.
+- `pr-memory` — PR-keyed, on-disk session memory. `save` snapshots the
+  current session as a handoff-style document (worktree, per-repo branches,
+  every related PR), and `load <pr>` re-hydrates it later by any of those PR
+  numbers. Works standalone in a single repo, or across a multi-repo
+  workspace if you use one. Memories are pruned automatically once every PR
+  they reference has merged.
 
 ## Installation
 
@@ -54,10 +60,13 @@ hardkoded-skills/
         ├── .cursor-plugin/plugin.json
         ├── .codex-plugin/plugin.json
         └── skills/
-            └── cronito/
+            ├── cronito/
+            │   ├── SKILL.md
+            │   ├── cronito.sh
+            │   └── dist/cronito.cjs
+            └── pr-memory/
                 ├── SKILL.md
-                ├── cronito.sh
-                └── dist/cronito.cjs
+                └── scripts/
 ```
 
 Every install path above (Claude, Cursor, Copilot, Codex) resolves skills
