@@ -12,7 +12,7 @@
     {
       "name": "hardkoded",
       "source": "./plugins/hardkoded",
-      "description": "A growing collection of skills by hardkoded. Currently featuring cronito, a self-contained scheduled-task manager for your machine."
+      "description": "A growing collection of skills by hardkoded. Currently featuring cronito, a self-contained scheduled-task manager for your machine, and pr-memory, PR-keyed session memory that saves and restores agent context."
     }
   ]
 }
