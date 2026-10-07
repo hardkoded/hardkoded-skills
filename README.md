@@ -19,6 +19,10 @@ Currently:
   workspace if you use one. Memories are pruned automatically once every PR
   they reference has merged.
 
+- `user-email` — an optional Claude Code mod that shows the signed-in
+  account email above the prompt. Not installed with `hardkoded`; install it
+  separately with `/plugin install user-email@hardkoded` if you want it.
+
 ## Installation
 
 ### Claude Code
