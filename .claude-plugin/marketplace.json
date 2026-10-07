@@ -13,6 +13,11 @@
       "name": "hardkoded",
       "source": "./plugins/hardkoded",
       "description": "A growing collection of skills by hardkoded. Currently featuring cronito, a self-contained scheduled-task manager for your machine, and pr-memory, PR-keyed session memory that saves and restores agent context."
+    },
+    {
+      "name": "user-email",
+      "source": "./plugins/user-email",
+      "description": "Optional mod that shows the signed-in Claude account email above the prompt. Install only if you want it."
     }
   ]
 }
