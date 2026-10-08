@@ -23,6 +23,11 @@ Currently:
   account email above the prompt. Not installed with `hardkoded`; install it
   separately with `/plugin install user-email@hardkoded-skills` if you want it.
 
+- `usage-forecast` — an optional Claude Code mod that projects where the
+  5-hour usage window will land at reset, shown above the prompt. Not installed
+  with `hardkoded`; install it separately with
+  `/plugin install usage-forecast@hardkoded-skills` if you want it.
+
 ## Installation
 
 ### Claude Code
