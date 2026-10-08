@@ -52,15 +52,17 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const beneath = await next(e)
     const f = await read($, forecast)
-    if (e.props.hasSurvey || !f) return next(e)
+    if (e.props.hasSurvey || !f) return beneath
 
     const { Box, Text } = $.ui.resolve(e)
     const over = f.projected >= 100
     const pct = f.projected > MAX_SHOWN_PERCENT ? `>${MAX_SHOWN_PERCENT}` : Math.round(f.projected)
 
     return (
-      <Box justifyContent="flex-end">
+      <Box justifyContent="space-between">
+        {beneath}
         <Text color={over ? 'error' : 'success'}>
           {pct}% by {f.at} - {over ? 'SLOW DOWN!' : 'BURN SOME TOKENS!'}
         </Text>

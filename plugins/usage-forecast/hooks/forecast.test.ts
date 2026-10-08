@@ -11,6 +11,8 @@ const fiveHour = (percentUsed: number, resetsAt: number): SessionRateLimit[] => 
 
 const answerMeasure = (on: On) => on('session.measure', (_$, e) => ({ changed: e.changed }))
 
+const answerRender = (on: On) => on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
+
 const context = { window: 200_000 }
 const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 24, bodyColumns: 80, scroll: { offset: 0, bodyRows: 24 }, view: {} }
 
@@ -18,6 +20,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
   test(`shows the projection above the prompt on ${surface}`, async ($, on) => {
     mock.clock(on, { now: START })
     answerMeasure(on)
+    answerRender(on)
     await $.session.measure({ context, rateLimits: fiveHour(40, START + 2.5 * HOUR_MS), changed: ['rateLimits'] })
 
     const band = await $.ui.mount({ plugin: 'usage-forecast', surface, component: 'AbovePrompt', props: BAND_PROPS })
@@ -32,6 +35,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const reset = START + 1.5 * HOUR_MS
     const clock = mock.clock(on, { now: START })
     answerMeasure(on)
+    answerRender(on)
     await $.session.measure({ context, rateLimits: fiveHour(40, reset), changed: ['rateLimits'] })
     await clock.advance(5 * MINUTE_MS)
     await $.session.measure({ context, rateLimits: fiveHour(45, reset), changed: ['rateLimits'] })
@@ -50,6 +54,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const reset = START + 4 * HOUR_MS
     const clock = mock.clock(on, { now: START })
     answerMeasure(on)
+    answerRender(on)
     await $.session.measure({ context, rateLimits: fiveHour(50, reset), changed: ['rateLimits'] })
     await clock.advance(5 * MINUTE_MS)
     await $.session.measure({ context, rateLimits: fiveHour(60, reset), changed: ['rateLimits'] })
@@ -65,7 +70,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
   test(`renders nothing without a five-hour reading on ${surface}`, async ($, on) => {
     mock.clock(on, { now: START })
     answerMeasure(on)
-    on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
+    answerRender(on)
     await $.session.measure({ context, rateLimits: [], changed: ['rateLimits'] })
 
     const band = await $.ui.mount({ plugin: 'usage-forecast', surface, component: 'AbovePrompt', props: BAND_PROPS })
