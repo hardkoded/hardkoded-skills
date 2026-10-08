@@ -18,6 +18,11 @@
       "name": "user-email",
       "source": "./plugins/user-email",
       "description": "Optional mod that shows the signed-in Claude account email above the prompt. Install only if you want it."
+    },
+    {
+      "name": "usage-forecast",
+      "source": "./plugins/usage-forecast",
+      "description": "Optional mod that projects where the 5-hour usage window will land at reset, shown above the prompt. Install only if you want it."
     }
   ]
 }
