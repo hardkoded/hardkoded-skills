@@ -61,11 +61,13 @@ export const register: Register = on => {
     const pct = f.projected > MAX_SHOWN_PERCENT ? `>${MAX_SHOWN_PERCENT}` : Math.round(f.projected)
 
     return (
-      <Box justifyContent="space-between">
+      <Box justifyContent="flex-end">
         {beneath}
-        <Text color={over ? 'error' : 'success'}>
-          {pct}% by {f.at} - {over ? 'SLOW DOWN!' : 'BURN SOME TOKENS!'}
-        </Text>
+        <Box marginLeft={2}>
+          <Text color={over ? 'error' : 'success'}>
+            {pct}% by {f.at} - {over ? 'SLOW DOWN!' : 'BURN SOME TOKENS!'}
+          </Text>
+        </Box>
       </Box>
     )
   })
