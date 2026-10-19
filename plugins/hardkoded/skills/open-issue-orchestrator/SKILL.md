@@ -39,11 +39,13 @@ Stored per repo at `~/.claude/open-issue-orchestrator/config.json`, keyed by
 
 - `label`: only issues with this label are picked. `null` means all open issues.
   A repo with no `label` key has not been asked yet. `null` is an answer.
-- `maxSubagents`: the most subagents that run at the same time. Optional.
+- `maxSubagents`: the most subagents running at the same time. It is not a
+  total for the run. See "Slots" in "Pick issues". Optional.
   Default is 6, also when the value is missing or not a positive integer. Do
   not ask for it. The user changes it by saying "set the subagent limit to 3"
   or by editing the file. A new limit applies to the next launch. Running
-  subagents are not stopped.
+  subagents are not stopped. If more are running than the new limit allows,
+  launch nothing until the number running is below the limit.
 
 To save, create the directory if needed, read the existing JSON (or `{}`), set
 only the field you are changing (keep the other fields), and write the file
@@ -67,16 +69,31 @@ issues. Save the answer. Do not ask again. The user can change it by saying
    - it is too vague to implement. Add it to the "needs the user" list.
 4. Check overlap. Guess the files each issue will touch. If two issues touch
    the same files, run them one after the other, not at the same time.
-5. Cap concurrent subagents at `maxSubagents`. Queue the rest.
+5. Limit by slots (see "Slots" below). Queue the rest.
 6. Claim each issue you launch. Make sure the label exists first:
    `gh label create in-progress --force`. Then
    `gh issue edit <n> --add-label in-progress` and add a short comment saying
    an agent is on it.
 
+### Slots
+
+`maxSubagents` is a limit on how many subagents are running at once. It is not
+a limit on how many you launch in total.
+
+- A subagent uses a slot from its launch until it reports back. It reports
+  back when it opens its PR, or when it stops on a critical question.
+- A subagent that you wake with `SendMessage` to fix a PR uses a slot again
+  until it reports back. Do not wake it when no slot is free. Fix work goes
+  before new issues when a slot frees.
+- When a slot frees, launch the next queued issue. Skip an issue that touches
+  the same files as a running one (step 4) and take the next one. Stop when
+  the queue is empty.
+
 ## Launch subagents
 
 One subagent per issue. Use the `Agent` tool with `isolation: "worktree"`.
-Launch independent ones in the same message. Give each subagent:
+Launch independent ones in the same message, but only as many as there are
+free slots. Give each subagent:
 
 - the issue number, title, body, and link
 - the rule: branch from the latest `main`, never reuse an old branch, and
