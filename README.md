@@ -18,6 +18,11 @@ Currently:
   numbers. Works standalone in a single repo, or across a multi-repo
   workspace if you use one. Memories are pruned automatically once every PR
   they reference has merged.
+- `open-issue-orchestrator` — an orchestrator that pulls open GitHub
+  issues, launches one subagent per issue in its own worktree, then watches
+  the pull requests for build errors, merge conflicts, and review comments and
+  sends them back to the right subagent. It decides minor things itself and
+  only asks you critical questions. It never merges.
 
 - `user-email` — an optional Claude Code mod that shows the signed-in
   account email above the prompt. Not installed with `hardkoded`; install it
@@ -73,6 +78,8 @@ hardkoded-skills/
             │   ├── SKILL.md
             │   ├── cronito.sh
             │   └── dist/cronito.cjs
+            ├── open-issue-orchestrator/
+            │   └── SKILL.md
             └── pr-memory/
                 ├── SKILL.md
                 └── scripts/
