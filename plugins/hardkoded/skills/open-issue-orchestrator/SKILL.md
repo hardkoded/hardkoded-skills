@@ -32,17 +32,22 @@ Stored per repo at `~/.claude/open-issue-orchestrator/config.json`, keyed by
 `owner/repo`:
 
 ```json
-{ "owner/repo": { "label": "agent-ready" } }
+{ "owner/repo": { "label": "agent-ready", "maxSubagents": 6 } }
 ```
 
 - `label`: only issues with this label are picked. `null` means all open issues.
-  A repo with no entry has not been asked yet. `null` is an answer.
+  A repo with no `label` key has not been asked yet. `null` is an answer.
+- `maxSubagents`: the most subagents that run at the same time. Optional.
+  Default is 6, also when the value is missing or not a positive integer. Do
+  not ask for it. The user changes it by saying "set the subagent limit to 3"
+  or by editing the file. A new limit applies to the next launch. Running
+  subagents are not stopped.
 
 To save, create the directory if needed, read the existing JSON (or `{}`), set
-only this repo's key, and write the file back. Never overwrite other repos'
-entries.
+only the field you are changing (keep the other fields), and write the file
+back. Never overwrite other repos' entries.
 
-The first time you run in a repo, with no entry, ask once with
+The first time you run in a repo, with no `label` key, ask once with
 `AskUserQuestion`: use a label filter (and which label), or take all open
 issues. Save the answer. Do not ask again. The user can change it by saying
 "change the label" or by editing the file.
@@ -60,7 +65,7 @@ issues. Save the answer. Do not ask again. The user can change it by saying
    - it is too vague to implement. Add it to the "needs the user" list.
 4. Check overlap. Guess the files each issue will touch. If two issues touch
    the same files, run them one after the other, not at the same time.
-5. Cap concurrent subagents at 6. Queue the rest.
+5. Cap concurrent subagents at `maxSubagents`. Queue the rest.
 6. Claim each issue you launch. Make sure the label exists first:
    `gh label create in-progress --force`. Then
    `gh issue edit <n> --add-label in-progress` and add a short comment saying
