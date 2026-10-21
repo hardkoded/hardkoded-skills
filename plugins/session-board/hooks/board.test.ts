@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { PR_URL, clip, fresh, merge, parse } from './board'
+import { PR_URL, clip, fresh, merge, parse, promptGuess } from './board'
 
 const base = fresh('s1', '/work', 100)
 
@@ -55,4 +55,13 @@ test('a tool call from an unknown or dropped subagent adds nothing', async () =>
 test('stale subagents are dropped on the next write', async () => {
   const added = merge(base, { sub: { id: 'a' } }, 110)
   expect(merge(added, { state: 'active' }, 110 + 31 * 60 * 1000).subs).toBe(undefined)
+})
+
+test('system messages are not shown as the last task', async () => {
+  expect(promptGuess('<task-notification><task-id>a</task-id>')).toBe(undefined)
+  expect(promptGuess('  fix the login bug')).toEqual({ lastTask: 'fix the login bug' })
+  expect(promptGuess('<local-command-stdout>ok</local-command-stdout>')).toBe(undefined)
+  expect(promptGuess('<div> is not centered')).toEqual({ lastTask: '<div> is not centered' })
+  expect(promptGuess(undefined)).toBe(undefined)
+  expect(promptGuess('   ')).toBe(undefined)
 })
