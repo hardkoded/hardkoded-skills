@@ -33,6 +33,11 @@ Currently:
   with `hardkoded`; install it separately with
   `/plugin install usage-forecast@hardkoded-skills` if you want it.
 
+- `session-board` — an optional Claude Code mod that shows every open Claude
+  session, its subagents, state and PR status on one page. Not installed with
+  `hardkoded`; install it separately with
+  `/plugin install session-board@hardkoded-skills` if you want it.
+
 ## Installation
 
 ### Claude Code
