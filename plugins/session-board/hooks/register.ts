@@ -125,7 +125,7 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('classic.Stop', async ($, e, next) => {
-    await note($, { state: 'idle' })
+    await note($, { state: 'idle', busy: !!e.background_tasks?.length })
     return next(e)
   }).catch(($, e, next) => next(e))
 
