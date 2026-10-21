@@ -38,6 +38,13 @@ export const clip = (text: string | undefined): string | undefined => {
   return flat ? flat : undefined
 }
 
+const SYSTEM_TAG = /^\s*<(task-notification|system-reminder|command-|local-command-)/
+
+export const promptGuess = (text: string | undefined): Row['guess'] | undefined => {
+  const task = text && SYSTEM_TAG.test(text) ? undefined : clip(text)
+  return task ? { lastTask: task } : undefined
+}
+
 export const parse = (text: string): Row | undefined => {
   try {
     const row = JSON.parse(text) as Row

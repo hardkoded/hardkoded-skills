@@ -1,6 +1,6 @@
 import type { EngineInterface as Engine, Register } from 'claude-code'
 
-import { PR_URL, clip, fresh, merge, parse } from './board'
+import { PR_URL, clip, fresh, merge, parse, promptGuess } from './board'
 import type { Change } from './board'
 
 const TOOL = 'mcp__session-board__board_update'
@@ -80,7 +80,7 @@ export const register: Register = on => {
 
   on('prompt.submit', async ($, e, next) => {
     if (!e.isMeta && !e.command) {
-      await note($, { state: 'active', clearWaiting: true, refresh: true, guess: { lastTask: clip(e.text) } })
+      await note($, { state: 'active', clearWaiting: true, refresh: true, guess: promptGuess(e.text) })
     }
     return next(e)
   }).catch(($, e, next) => next(e))
