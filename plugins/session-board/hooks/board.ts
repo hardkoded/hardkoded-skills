@@ -23,6 +23,7 @@ export type Change = Partial<Pick<Row, 'state' | 'title' | 'goal' | 'lastTask' |
   guess?: Row['guess']
   addPrs?: string[]
   clearWaiting?: boolean
+  busy?: boolean
   sub?: Partial<Sub> & Pick<Sub, 'id'>
   touchSub?: { id: string; lastTask?: string }
   dropSub?: string
@@ -56,7 +57,8 @@ export const parse = (text: string): Row | undefined => {
 
 export const merge = (prev: Row, change: Change, now: number): Row => {
   const next: Row = { ...prev, guess: { ...prev.guess }, updatedAt: now }
-  const state = change.state === 'idle' && (change.waitingFor ?? prev.waitingFor) ? 'waiting' : change.state
+  const asking = change.state === 'idle' && (change.waitingFor ?? prev.waitingFor)
+  const state = asking ? 'waiting' : change.state === 'idle' && change.busy ? 'active' : change.state
   if (state && state !== prev.state) {
     next.state = state
     next.stateSince = now

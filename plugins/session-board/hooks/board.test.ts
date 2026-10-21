@@ -9,6 +9,13 @@ test('idle with a pending question settles as waiting', async () => {
   expect(merge(asked, { state: 'idle' }, 120).state).toBe('waiting')
 })
 
+test('a turn that ends with background work stays active unless it asks a question', async () => {
+  expect(merge(base, { state: 'idle', busy: true }, 110).state).toBe('active')
+  expect(merge(base, { state: 'idle', busy: false }, 110).state).toBe('idle')
+  const asked = merge(base, { waitingFor: 'ship it?' }, 110)
+  expect(merge(asked, { state: 'idle', busy: true }, 120).state).toBe('waiting')
+})
+
 test('a new prompt clears the question and keeps the state clock on no change', async () => {
   const waiting = merge(base, { state: 'waiting', waitingFor: 'q', guess: { waitingFor: 'g' } }, 110)
   const next = merge(waiting, { state: 'active', clearWaiting: true }, 130)
