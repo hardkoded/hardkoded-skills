@@ -66,12 +66,12 @@ const sending = new Set<string>()
 const AUTO_MODE = /auto mode|classifier/i
 
 /** A refused send is relayed only when auto mode refused it. A session that is gone cannot be reached either way. */
-const refused = ($: EngineInterface, session: SessionStatus, ask: string, text: string, why: string): Promise<Sent> =>
-  AUTO_MODE.test(why) ? relay($, session, ask, text, why) : Promise.resolve({ is: 'failed', reason: why })
+const refused = ($: EngineInterface, session: SessionStatus, id: string, text: string, why: string): Promise<Sent> =>
+  AUTO_MODE.test(why) ? relay($, session, id, text, why) : Promise.resolve({ is: 'failed', reason: why })
 
 /** Asks this session's Claude to send the answer, since it is the model's own SendMessage call that auto mode can judge. */
-function relay($: EngineInterface, session: SessionStatus, ask: string, text: string, why: string): Promise<Sent> {
-  return $.prompt.submit({ text: relayText(session.sessionId, ask, text), asUser: true }).then(
+function relay($: EngineInterface, session: SessionStatus, id: string, text: string, why: string): Promise<Sent> {
+  return $.prompt.submit({ text: relayText(session.sessionId, id, text), asUser: true }).then(
     (r): Sent => (r.drop === undefined ? { is: 'relayed' } : { is: 'failed', reason: `${why}; ${r.drop}` }),
     (): Sent => ({ is: 'failed', reason: why }),
   )
@@ -83,9 +83,8 @@ async function answer($: EngineInterface, session: SessionStatus, id: string, as
   sending.add(key)
   try {
     const outcome = await $.session.send({ to: { sessionId: session.sessionId }, text: answerText(ask, text) }).then(
-      (r): Promise<Sent> =>
-        r.isDelivered ? Promise.resolve({ is: 'sent' }) : refused($, session, ask, text, r.reason),
-      (err: unknown) => refused($, session, ask, text, err instanceof Error ? err.message : String(err)),
+      (r): Promise<Sent> => (r.isDelivered ? Promise.resolve({ is: 'sent' }) : refused($, session, id, text, r.reason)),
+      (err: unknown) => refused($, session, id, text, err instanceof Error ? err.message : String(err)),
     )
 
     await Promise.all([
@@ -155,11 +154,12 @@ export const register: Register = on => {
               return (
                 <Box key={key} flexDirection="column" marginLeft={2} marginTop={1}>
                   <Text wrap="wrap">{q.ask}</Text>
-                  {outcome?.is === 'relayed' ? (
-                    <Text color="success">Handed to Claude to send. It leaves this list when the session updates.</Text>
-                  ) : outcome?.is === 'sent' ? (
+                  {outcome?.is === 'sent' || outcome?.is === 'relayed' ? (
                     <Box flexDirection="row" columnGap={1}>
-                      <Text color="success">Sent. It leaves this list when the session updates.</Text>
+                      <Text color="success">
+                        {outcome.is === 'relayed' ? 'Handed to Claude to send' : 'Sent'}. It leaves this list when the
+                        session updates.
+                      </Text>
                       <Button
                         key={`${key}:again`}
                         plain
