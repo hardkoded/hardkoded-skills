@@ -1,0 +1,11 @@
+{
+  "name": "inbox",
+  "version": "0.2.10",
+  "description": "Gathers the questions, tasks, findings and PRs waiting on you in a session. Optional: install only if you want it.",
+  "author": { "name": "Pete Petrash" },
+  "repository": "https://github.com/hardkoded/hardkoded-skills",
+  "homepage": "https://github.com/petekp/inbox",
+  "license": "MIT",
+  "keywords": ["mod", "inbox", "questions"],
+  "types": "./types/index.d.ts"
+}
