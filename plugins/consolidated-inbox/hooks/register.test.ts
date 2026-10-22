@@ -28,8 +28,11 @@ const status = (sessionId: string, name: string, ask: string, options: string[])
     findings: [],
   })
 
+let relayed: string[] = []
+
 function world(on: On, files: Record<string, string>, delivery: { isDelivered: boolean; reason?: string }) {
   const sends: { to: string; text: string }[] = []
+  relayed = []
   on('env.get', (_$, e) => ({ value: e.name === 'HOME' ? '/home/me' : undefined }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('session.id', () => ({ value: 'me' }))
@@ -40,6 +43,10 @@ function world(on: On, files: Record<string, string>, delivery: { isDelivered: b
     value: Object.keys(files).map(name => ({ name, kind: 'file' as const, size: 1, mtimeMs: 1, isLink: false })),
   }))
   on('fs.read', (_$, e) => ({ value: files[e.path.split('/').at(-1) ?? ''] ?? '' }))
+  on('prompt.submit', (_$, e) => {
+    relayed.push(e.text)
+    return { text: e.text, context: e.context }
+  })
   on('session.send', (_$, e) => {
     sends.push({ to: e.to, text: e.text })
     return delivery as never
@@ -75,6 +82,29 @@ test('shows the open questions of other sessions, and an option sends the answer
     { to: 'sa', text: 'The person answered this from the consolidated inbox. Re "Node or Python?": Python' },
   ])
   expect(await pane.find({ text: /Sent\./ })).toBeDefined()
+})
+
+test('a refused send hands the answer to this session’s Claude to send', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  const sends = world(
+    on,
+    { 'a.json': status('sa', 'greeter', 'Ship it?', ['Yes']) },
+    { isDelivered: false, reason: 'The server-side auto mode classifier gave no verdict for SendMessage' },
+  )
+
+  await $.session.start({ cwd: '/tmp/project', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'consolidated-inbox', args: '' } as never)
+  await clock.settle()
+
+  const pane = await $.ui.mount(PANE)
+  await pane.press({ key: 'sa:i1:Yes' })
+  await clock.settle()
+
+  expect(sends.length).toBe(1)
+  expect(relayed).toHaveLength(1)
+  expect(relayed[0]).toContain('session sa with the SendMessage tool')
+  expect(relayed[0]).toContain('Re "Ship it?": Yes')
+  expect(await pane.find({ text: /Handed to Claude/ })).toBeDefined()
 })
 
 test('a session that is gone shows why nothing was sent, and the options stay', async ($, on) => {

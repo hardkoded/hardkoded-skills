@@ -8,7 +8,7 @@ export type SessionStatus = {
   questions: Question[]
 }
 
-export type Sent = { is: 'sent' | 'failed'; reason?: string }
+export type Sent = { is: 'sent' | 'relayed' | 'failed'; reason?: string }
 
 declare module 'claude-code' {
   interface PluginState {

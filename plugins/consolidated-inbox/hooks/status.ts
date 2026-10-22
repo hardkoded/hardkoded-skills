@@ -61,6 +61,13 @@ export function openSessions(all: SessionStatus[], now: number, ownId: string): 
 export const answerText = (ask: string, answer: string): string =>
   `The person answered this from the consolidated inbox. Re "${ask}": ${answer}`
 
+/**
+ * The prompt that has this session's Claude send the answer on. It runs when `session.send` is refused, as in auto
+ * mode, which judges a model's SendMessage call but has no request to judge for a mod's.
+ */
+export const relayText = (sessionId: string, ask: string, answer: string): string =>
+  `The person answered a question of another session from the consolidated inbox. Send the message below to session ${sessionId} with the SendMessage tool, word for word, and do nothing else.\n\n${answerText(ask, answer)}`
+
 /** The label for a session: its name, else its folder's name, else the start of its id. */
 export const sessionLabel = (s: SessionStatus): string =>
   s.name ?? s.project?.split('/').filter(Boolean).at(-1) ?? s.sessionId.slice(0, 8)
