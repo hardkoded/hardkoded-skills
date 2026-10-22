@@ -1,7 +1,7 @@
 import type { Question, SessionStatus } from '../types'
 
 /** A session's status file is stale after this long without a write. The session has likely ended. */
-export const STALE_MS = 24 * 60 * 60 * 1000
+export const STALE_MS = 7 * 24 * 60 * 60 * 1000
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
 

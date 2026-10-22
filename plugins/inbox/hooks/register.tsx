@@ -44,6 +44,7 @@ import {
   noteStored,
   readSaved,
   readSettled,
+  removeStatus,
   replaceDrawn,
   savedWriteCount,
   sessionHost,
@@ -2344,6 +2345,7 @@ export const register: Register = on => {
 
   on('session.end', async ($, e, next) => {
     endReason = e.reason
+    if (conversation.id) void removeStatus($, conversation.id)
     loadRevision++
     stopGeneration++
     resuming = null

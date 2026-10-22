@@ -18,7 +18,7 @@ let isPolling = false
 async function statusDir($: EngineInterface): Promise<string> {
   const set = await $.env.get('INBOX_STATUS_DIR')
   if (set) return set
-  const config = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${(await $.env.get('HOME')) ?? ''}/.claude`
+  const config = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${(await $.env.get('HOME')) ?? ''}/.claude`
 
   return `${config}/inbox/status`
 }
@@ -33,7 +33,12 @@ async function refresh($: EngineInterface) {
   const found = files.filter((s): s is SessionStatus => s !== null)
   const [now, ownId] = await Promise.all([$.clock.now(), $.session.id()])
 
-  await update($, SESSIONS, () => openSessions(found, now, ownId))
+  const open = openSessions(found, now, ownId)
+  const ids = new Set(open.flatMap(s => s.questions.map(q => `${s.sessionId}:${q.id}`)))
+
+  await update($, SESSIONS, () => open)
+  // A sent answer is forgotten once its question leaves the list, so a reused id starts clean.
+  await update($, SENT, sent => Object.fromEntries(Object.entries(sent).filter(([key]) => ids.has(key))))
 }
 
 /** Reads the status folder every few seconds while the pane is open. */
@@ -43,7 +48,7 @@ function poll($: EngineInterface) {
   void (async () => {
     try {
       while (isOpen) {
-        await refresh($)
+        await refresh($).catch(() => undefined)
         await $.clock.sleep(POLL_MS)
       }
     } finally {
@@ -52,14 +57,22 @@ function poll($: EngineInterface) {
   })().catch(() => undefined)
 }
 
+const sending = new Set<string>()
+
 async function answer($: EngineInterface, session: SessionStatus, id: string, ask: string, text: string) {
   const key = `${session.sessionId}:${id}`
+  if (sending.has(key)) return
+  sending.add(key)
   const outcome = await $.session.send({ to: { sessionId: session.sessionId }, text: answerText(ask, text) }).then(
     (r): Sent => (r.isDelivered ? { is: 'sent' } : { is: 'failed', reason: r.reason }),
     (err: unknown): Sent => ({ is: 'failed', reason: err instanceof Error ? err.message : String(err) }),
   )
 
-  await Promise.all([update($, SENT, s => ({ ...s, [key]: outcome })), update($, TYPING, t => (t === key ? null : t))])
+  sending.delete(key)
+  await Promise.all([
+    update($, SENT, s => ({ ...s, [key]: outcome })),
+    update($, TYPING, t => (t === key && outcome.is === 'sent' ? null : t)),
+  ])
 }
 
 export const register: Register = on => {
@@ -121,7 +134,17 @@ export const register: Register = on => {
                 <Box key={key} flexDirection="column" marginLeft={2} marginTop={1}>
                   <Text wrap="wrap">{q.ask}</Text>
                   {outcome?.is === 'sent' ? (
-                    <Text color="success">Sent. It leaves this list when the session updates.</Text>
+                    <Box flexDirection="row" columnGap={1}>
+                      <Text color="success">Sent. It leaves this list when the session updates.</Text>
+                      <Button
+                        key={`${key}:again`}
+                        plain
+                        label="Answer again"
+                        onPress={() =>
+                          void update($, SENT, s => Object.fromEntries(Object.entries(s).filter(([k]) => k !== key)))
+                        }
+                      />
+                    </Box>
                   ) : (
                     <Box flexDirection="column">
                       {outcome?.is === 'failed' ? (

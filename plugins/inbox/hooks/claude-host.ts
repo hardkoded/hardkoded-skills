@@ -272,7 +272,19 @@ const exportsBySession = new Map<string, Promise<void>>()
 
 /** Claude Code's config folder: `CLAUDE_CONFIG_DIR`, else `~/.claude`. */
 async function configDir($: EngineInterface): Promise<string> {
-  return (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${(await $.env.get('HOME')) ?? ''}/.claude`
+  return (await $.env.get('CLAUDE_CONFIG_DIR')) || `${(await $.env.get('HOME')) ?? ''}/.claude`
+}
+
+const names = new Map<string, string>()
+
+/** The session's name, cached once found, since reading it greps the whole transcript. */
+async function cachedName($: EngineInterface, id: string, root: string): Promise<string | null> {
+  const cached = names.get(id)
+  if (cached) return cached
+  const found = await transcriptName($, id, root).catch(() => null)
+  if (found) names.set(id, found)
+
+  return found
 }
 
 /** The session's name, from the name lines of its transcript under the config folder. Null when none can be read. */
@@ -301,7 +313,7 @@ async function exportStatus(
   try {
     if (!/^[\w-]{1,100}$/.test(id)) return
     const dir = (await $.env.get('INBOX_STATUS_DIR')) || `${await configDir($)}/inbox/status`
-    const name = await transcriptName($, id, root).catch(() => null)
+    const name = await cachedName($, id, root)
     const status = statusFile(session, {
       host: 'claude-code',
       sessionId: id,
@@ -317,6 +329,29 @@ async function exportStatus(
   } catch {
     // The export is a convenience. The inbox's own state is already saved.
   }
+}
+
+/**
+ * Removes a session's status file once its exports have landed, so the consolidated inbox stops listing a conversation
+ * that ended, was cleared or was resumed under another id.
+ */
+export function removeStatus($: EngineInterface, id: string): Promise<void> {
+  names.delete(id)
+  const next = (exportsBySession.get(id) ?? Promise.resolve()).then(async () => {
+    try {
+      if (!/^[\w-]{1,100}$/.test(id)) return
+      const dir = (await $.env.get('INBOX_STATUS_DIR')) || `${await configDir($)}/inbox/status`
+      await $.process.run(['rm', '-f', `${dir}/${sessionFile(id)}`])
+    } catch {
+      // A file left behind goes stale on its own.
+    }
+  })
+  exportsBySession.set(id, next)
+  void next.finally(() => {
+    if (exportsBySession.get(id) === next) exportsBySession.delete(id)
+  })
+
+  return next
 }
 
 /** Runs a session's exports one after another, apart from the save chain, so a slow export never delays a save. */

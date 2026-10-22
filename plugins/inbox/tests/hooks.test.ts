@@ -3728,7 +3728,19 @@ test('the open rows land in the config folder’s inbox status folder, with no s
   expect(status.items.map((i: { ask: string }) => i.ask)).toEqual(['Use Node or Python?', 'Name the command greet?'])
 })
 
-test('INBOX_STATUS_DIR moves the status folder, and CLAUDE_CONFIG_DIR moves the default', async ($, on) => {
+test('CLAUDE_CONFIG_DIR moves the default status folder, and an empty one is ignored', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  world($, on, [], { HOME: '/home/me', CLAUDE_CONFIG_DIR: '/cfg' })
+
+  await $.session.start({ cwd: '/tmp/project', surface: 'terminal', isInteractive: true })
+  await $.prompt.submit({ text: 'add a greeting cli', wait: false, origin: { kind: 'composer' } })
+  await $.turn.complete({ answer: 'Node or Python?', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await clock.settle()
+
+  expect(exported.filter(argv => argv[0] === 'mv').at(-1)?.[2]).toBe('/cfg/inbox/status/session-1.json')
+})
+
+test('INBOX_STATUS_DIR moves the status folder', async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   world($, on, [], { HOME: '/home/me', CLAUDE_CONFIG_DIR: '/cfg', INBOX_STATUS_DIR: '/elsewhere' })
 
