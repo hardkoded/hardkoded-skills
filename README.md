@@ -33,6 +33,19 @@ Currently:
   with `hardkoded`; install it separately with
   `/plugin install usage-forecast@hardkoded-skills` if you want it.
 
+- `inbox` — an optional Claude Code mod, from
+  [petekp/inbox](https://github.com/petekp/inbox) (MIT), that gathers the
+  questions, tasks, findings and PRs waiting on you in a session. It always
+  writes its open rows to `inbox/status` in your Claude config folder. Install
+  it separately with `/plugin install inbox@hardkoded-skills` if you want it.
+
+- `consolidated-inbox` — an optional Claude Code mod that adds
+  `/consolidated-inbox`: one panel with the open questions of all your
+  sessions. Answer there and the answer goes to the session that asked. It
+  reads the files the `inbox` mod writes, so install `inbox` in each session
+  you want to see. Install it with
+  `/plugin install consolidated-inbox@hardkoded-skills`.
+
 ## Installation
 
 ### Claude Code
