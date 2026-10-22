@@ -236,7 +236,7 @@ function world($: Engine, on: On, prompts: string[], vars: Record<string, string
   on('fs.stat', () => ({ value: { kind: 'file' as const, size: 1, mtimeMs: 1, isLink: false } }))
   on('process.run', async ($, e) => {
     // The status export's commands stay out of `ran`, so a test reading its last command sees its own.
-    ;(['mkdir', 'mv', 'grep'].includes(e.argv[0] ?? '') ? exported : ran).push([...e.argv])
+    ;(['mkdir', 'mv', 'grep', 'rm'].includes(e.argv[0] ?? '') ? exported : ran).push([...e.argv])
     if (isGhMissing && e.argv[0] === 'gh') throw new Error('spawn gh ENOENT')
     await ghAnswers.find(a => a.match(e.argv))?.hold?.()
     return { value: gh(e.argv) }
@@ -3750,4 +3750,17 @@ test('INBOX_STATUS_DIR moves the status folder', async ($, on) => {
   await clock.settle()
 
   expect(exported.find(argv => argv[0] === 'mv')?.[2]).toBe('/elsewhere/session-1.json')
+})
+
+test('the status file is removed when the session ends, after the saves that were still queued', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  world($, on, [], { HOME: '/home/me' })
+
+  await $.session.start({ cwd: '/tmp/project', surface: 'terminal', isInteractive: true })
+  await $.prompt.submit({ text: 'add a greeting cli', wait: false, origin: { kind: 'composer' } })
+  await $.turn.complete({ answer: 'Node or Python?', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' })
+  await $.session.end({ sessionId: 'session-1', reason: 'other' } as never)
+  await clock.settle()
+
+  expect(exported.filter(a => a[0] === 'rm')).toEqual([['rm', '-f', '/home/me/.claude/inbox/status/session-1.json']])
 })

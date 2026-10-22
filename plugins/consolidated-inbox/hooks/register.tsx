@@ -25,9 +25,13 @@ async function statusDir($: EngineInterface): Promise<string> {
 
 async function refresh($: EngineInterface) {
   const dir = await statusDir($)
+  // A folder that cannot be listed keeps the last list and the sent marks. One that is not there yet is empty.
   const names = await $.fs.list(dir).then(
     entries => entries.filter(e => e.kind === 'file' && e.name.endsWith('.json')).map(e => e.name),
-    () => [] as string[],
+    (err: unknown) => {
+      if ((err as { code?: unknown }).code === 'ENOENT') return [] as string[]
+      throw err
+    },
   )
   const files = await Promise.all(names.map(name => $.fs.read(`${dir}/${name}`).then(parseStatus, () => null)))
   const found = files.filter((s): s is SessionStatus => s !== null)
@@ -63,16 +67,19 @@ async function answer($: EngineInterface, session: SessionStatus, id: string, as
   const key = `${session.sessionId}:${id}`
   if (sending.has(key)) return
   sending.add(key)
-  const outcome = await $.session.send({ to: { sessionId: session.sessionId }, text: answerText(ask, text) }).then(
-    (r): Sent => (r.isDelivered ? { is: 'sent' } : { is: 'failed', reason: r.reason }),
-    (err: unknown): Sent => ({ is: 'failed', reason: err instanceof Error ? err.message : String(err) }),
-  )
+  try {
+    const outcome = await $.session.send({ to: { sessionId: session.sessionId }, text: answerText(ask, text) }).then(
+      (r): Sent => (r.isDelivered ? { is: 'sent' } : { is: 'failed', reason: r.reason }),
+      (err: unknown): Sent => ({ is: 'failed', reason: err instanceof Error ? err.message : String(err) }),
+    )
 
-  sending.delete(key)
-  await Promise.all([
-    update($, SENT, s => ({ ...s, [key]: outcome })),
-    update($, TYPING, t => (t === key && outcome.is === 'sent' ? null : t)),
-  ])
+    await Promise.all([
+      update($, SENT, s => ({ ...s, [key]: outcome })),
+      update($, TYPING, t => (t === key && outcome.is === 'sent' ? null : t)),
+    ])
+  } finally {
+    sending.delete(key)
+  }
 }
 
 export const register: Register = on => {

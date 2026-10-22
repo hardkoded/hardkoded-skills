@@ -2345,6 +2345,7 @@ export const register: Register = on => {
 
   on('session.end', async ($, e, next) => {
     endReason = e.reason
+    // Not awaited: an exit must not wait on a save that hangs. A file left behind goes stale on its own.
     if (conversation.id) void removeStatus($, conversation.id)
     loadRevision++
     stopGeneration++

@@ -103,3 +103,18 @@ test('says so when no session has a question', async ($, on) => {
 
   expect(await (await $.ui.mount(PANE)).find({ text: /No open questions/ })).toBeDefined()
 })
+
+test('pressing an answer twice sends it once', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  const sends = world(on, { 'a.json': status('sa', 'greeter', 'Ship it?', ['Yes']) }, { isDelivered: true })
+
+  await $.session.start({ cwd: '/tmp/project', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'consolidated-inbox', args: '' } as never)
+  await clock.settle()
+
+  const pane = await $.ui.mount(PANE)
+  await Promise.all([pane.press({ key: 'sa:i1:Yes' }), pane.press({ key: 'sa:i1:Yes' })])
+  await clock.settle()
+
+  expect(sends.length).toBe(1)
+})

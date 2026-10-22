@@ -1,7 +1,7 @@
 import type { Question, SessionStatus } from '../types'
 
-/** A session's status file is stale after this long without a write. The session has likely ended. */
-export const STALE_MS = 7 * 24 * 60 * 60 * 1000
+/** A status file is stale after this long without a write. The inbox removes a file when its session ends, so this only catches a session that crashed. */
+export const STALE_MS = 24 * 60 * 60 * 1000
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
 

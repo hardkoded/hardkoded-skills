@@ -277,6 +277,11 @@ async function configDir($: EngineInterface): Promise<string> {
 
 const names = new Map<string, string>()
 
+/** Where the status files go: `INBOX_STATUS_DIR`, else `inbox/status` under the config folder. */
+async function statusDir($: EngineInterface): Promise<string> {
+  return (await $.env.get('INBOX_STATUS_DIR')) || `${await configDir($)}/inbox/status`
+}
+
 /** The session's name, cached once found, since reading it greps the whole transcript. */
 async function cachedName($: EngineInterface, id: string, root: string): Promise<string | null> {
   const cached = names.get(id)
@@ -312,7 +317,7 @@ async function exportStatus(
 ): Promise<void> {
   try {
     if (!/^[\w-]{1,100}$/.test(id)) return
-    const dir = (await $.env.get('INBOX_STATUS_DIR')) || `${await configDir($)}/inbox/status`
+    const dir = await statusDir($)
     const name = await cachedName($, id, root)
     const status = statusFile(session, {
       host: 'claude-code',
@@ -332,15 +337,17 @@ async function exportStatus(
 }
 
 /**
- * Removes a session's status file once its exports have landed, so the consolidated inbox stops listing a conversation
+ * Removes a session's status file once its saves and exports have landed, so the consolidated inbox stops listing a conversation
  * that ended, was cleared or was resumed under another id.
  */
-export function removeStatus($: EngineInterface, id: string): Promise<void> {
-  names.delete(id)
+export async function removeStatus($: EngineInterface, id: string): Promise<void> {
+  // A save still queued would write the file after the remove, so let every queued save and its export land first.
+  await saving
   const next = (exportsBySession.get(id) ?? Promise.resolve()).then(async () => {
+    names.delete(id)
     try {
       if (!/^[\w-]{1,100}$/.test(id)) return
-      const dir = (await $.env.get('INBOX_STATUS_DIR')) || `${await configDir($)}/inbox/status`
+      const dir = await statusDir($)
       await $.process.run(['rm', '-f', `${dir}/${sessionFile(id)}`])
     } catch {
       // A file left behind goes stale on its own.
