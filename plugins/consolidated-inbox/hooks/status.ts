@@ -3,6 +3,8 @@ import type { Question, SessionStatus } from '../types'
 /** A status file is stale after this long without a write. The inbox removes a file when its session ends, so this only catches a session that crashed. */
 export const STALE_MS = 24 * 60 * 60 * 1000
 
+const SESSION_ID = /^[\w-]{1,100}$/
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
 
 const text = (v: unknown): string | null => (typeof v === 'string' ? v : null)
@@ -18,7 +20,13 @@ export function parseStatus(raw: string): SessionStatus | null {
   } catch {
     return null
   }
-  if (!isRecord(file) || file.version !== 1 || typeof file.sessionId !== 'string' || !Array.isArray(file.items))
+  if (
+    !isRecord(file) ||
+    file.version !== 1 ||
+    typeof file.sessionId !== 'string' ||
+    !SESSION_ID.test(file.sessionId) ||
+    !Array.isArray(file.items)
+  )
     return null
 
   const questions = file.items.flatMap((item: unknown): Question[] => {
@@ -60,6 +68,13 @@ export function openSessions(all: SessionStatus[], now: number, ownId: string): 
 /** What a session reads when the person answers from the consolidated inbox. Same form as the inbox's own answers. */
 export const answerText = (ask: string, answer: string): string =>
   `The person answered this from the consolidated inbox. Re "${ask}": ${answer}`
+
+/**
+ * The prompt that has this session's Claude send the answer on. It runs when `session.send` is refused, as in auto
+ * mode, which judges a model's SendMessage call but has no request to judge for a mod's.
+ */
+export const relayText = (sessionId: string, questionId: string, answer: string): string =>
+  `The person answered a question of another session from the consolidated inbox. Send the message below to session ${sessionId} with the SendMessage tool, word for word, and do nothing else.\n\nThe person answered this from the consolidated inbox. Re question ${questionId}: ${answer}`
 
 /** The label for a session: its name, else its folder's name, else the start of its id. */
 export const sessionLabel = (s: SessionStatus): string =>

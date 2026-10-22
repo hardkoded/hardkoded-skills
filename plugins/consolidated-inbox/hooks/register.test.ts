@@ -1,6 +1,8 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
+import { parseStatus } from './status'
+
 const PANE = {
   plugin: 'consolidated-inbox',
   surface: 'terminal' as const,
@@ -28,8 +30,13 @@ const status = (sessionId: string, name: string, ask: string, options: string[])
     findings: [],
   })
 
+let relayed: string[] = []
+let dropRelay: string | undefined
+
 function world(on: On, files: Record<string, string>, delivery: { isDelivered: boolean; reason?: string }) {
   const sends: { to: string; text: string }[] = []
+  relayed = []
+  dropRelay = undefined
   on('env.get', (_$, e) => ({ value: e.name === 'HOME' ? '/home/me' : undefined }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('session.id', () => ({ value: 'me' }))
@@ -40,6 +47,11 @@ function world(on: On, files: Record<string, string>, delivery: { isDelivered: b
     value: Object.keys(files).map(name => ({ name, kind: 'file' as const, size: 1, mtimeMs: 1, isLink: false })),
   }))
   on('fs.read', (_$, e) => ({ value: files[e.path.split('/').at(-1) ?? ''] ?? '' }))
+  on('prompt.submit', (_$, e) => {
+    relayed.push(e.text)
+    if (dropRelay) return { drop: dropRelay }
+    return { text: e.text, context: e.context }
+  })
   on('session.send', (_$, e) => {
     sends.push({ to: e.to, text: e.text })
     return delivery as never
@@ -75,6 +87,55 @@ test('shows the open questions of other sessions, and an option sends the answer
     { to: 'sa', text: 'The person answered this from the consolidated inbox. Re "Node or Python?": Python' },
   ])
   expect(await pane.find({ text: /Sent\./ })).toBeDefined()
+})
+
+test('a refused send hands the answer to this session’s Claude to send', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  const sends = world(
+    on,
+    { 'a.json': status('sa', 'greeter', 'Ship it?', ['Yes']) },
+    { isDelivered: false, reason: 'The server-side auto mode classifier gave no verdict for SendMessage' },
+  )
+
+  await $.session.start({ cwd: '/tmp/project', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'consolidated-inbox', args: '' } as never)
+  await clock.settle()
+
+  const pane = await $.ui.mount(PANE)
+  await pane.press({ key: 'sa:i1:Yes' })
+  await clock.settle()
+
+  expect(sends.length).toBe(1)
+  expect(relayed).toHaveLength(1)
+  expect(relayed[0]).toContain('session sa with the SendMessage tool')
+  expect(relayed[0]).toContain('Re question i1: Yes')
+  expect(relayed[0]).not.toContain('Ship it?')
+  expect(await pane.find({ text: /Handed to Claude/ })).toBeDefined()
+})
+
+test('a relay the session drops shows why, and the options stay', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  world(
+    on,
+    { 'a.json': status('sa', 'greeter', 'Ship it?', ['Yes']) },
+    { isDelivered: false, reason: 'auto mode classifier gave no verdict' },
+  )
+
+  dropRelay = 'busy'
+  await $.session.start({ cwd: '/tmp/project', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'consolidated-inbox', args: '' } as never)
+  await clock.settle()
+
+  const pane = await $.ui.mount(PANE)
+  await pane.press({ key: 'sa:i1:Yes' })
+  await clock.settle()
+
+  expect(await pane.find({ text: /Not sent: .*; busy/ })).toBeDefined()
+  expect(await pane.find({ key: 'sa:i1:Yes' })).toBeDefined()
+})
+
+test('a session id that is not safe in a file name is refused', () => {
+  expect(parseStatus(JSON.stringify({ version: 1, sessionId: '../x', items: [] }))).toBeNull()
 })
 
 test('a session that is gone shows why nothing was sent, and the options stay', async ($, on) => {
