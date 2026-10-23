@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionRateLimit } from 'claude-code'
 
-import type { Forecast } from '../types'
+import type { Forecast, Reading } from '../types'
 
 const WINDOW_MS = 5 * 60 * 60 * 1000
 const PACE_MS = 45 * 60 * 1000
@@ -9,34 +9,37 @@ const MIN_PACE_SPAN_MS = 10 * 60 * 1000
 const MIN_ELAPSED_MS = 60 * 1000
 const MAX_SHOWN_PERCENT = 300
 
-const forecast = atom({ plugin: 'usage-forecast', key: 'forecast' } as const, null as Forecast | null)
+const reading = atom({ plugin: 'usage-forecast', key: 'reading' } as const, null as Reading | null)
 
-let samples: { t: number; pct: number }[] = []
+function project({ percentUsed, reset, samples }: Reading, now: number): Forecast | null {
+  if (now >= reset) return null
+
+  const first = samples.find(s => now - s.t <= PACE_MS)
+  const recent = first && now - first.t >= MIN_PACE_SPAN_MS ? (percentUsed - first.pct) / (now - first.t) : null
+  const average = percentUsed / Math.max(now - (reset - WINDOW_MS), MIN_ELAPSED_MS)
+
+  const projected = percentUsed + (recent ?? average) * (reset - now)
+  const at = new Date(reset).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+
+  return { projected, at }
+}
 
 async function recompute($: EngineInterface, limits: SessionRateLimit[]) {
   const window = limits.find(l => l.kind === 'five_hour')
-  if (!window?.resetsAt) return update($, forecast, () => null)
+  if (!window?.resetsAt) return update($, reading, () => null)
 
   const now = await $.clock.now()
-  const reset = Date.parse(window.resetsAt)
+  const previous = (await read($, reading))?.samples ?? []
 
-  const last = samples[samples.length - 1]
-  if (last && window.percentUsed < last.pct) samples = []
-  samples = [...samples, { t: now, pct: window.percentUsed }].filter(s => now - s.t <= PACE_MS)
+  const last = previous[previous.length - 1]
+  const kept = last && window.percentUsed < last.pct ? [] : previous
+  const samples = [...kept, { t: now, pct: window.percentUsed }].filter(s => now - s.t <= PACE_MS)
 
-  const first = samples[0]
-  const latest = samples[samples.length - 1]
-  const recent =
-    first && latest && latest.t - first.t >= MIN_PACE_SPAN_MS
-      ? (latest.pct - first.pct) / (latest.t - first.t)
-      : null
-  const average = window.percentUsed / Math.max(now - (reset - WINDOW_MS), MIN_ELAPSED_MS)
-  const rate = recent ?? average
-
-  const projected = window.percentUsed + rate * Math.max(reset - now, 0)
-  const at = new Date(reset).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-
-  await update($, forecast, (): Forecast => ({ projected, at }))
+  await update($, reading, (): Reading => ({
+    percentUsed: window.percentUsed,
+    reset: Date.parse(window.resetsAt),
+    samples,
+  }))
 }
 
 export const register: Register = on => {
@@ -53,7 +56,8 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const beneath = await next(e)
-    const f = await read($, forecast)
+    const current = await read($, reading)
+    const f = current && project(current, await $.clock.now())
     if (e.props.hasSurvey || !f) return beneath
 
     const { Box, Text } = $.ui.resolve(e)
@@ -61,13 +65,11 @@ export const register: Register = on => {
     const pct = f.projected > MAX_SHOWN_PERCENT ? `>${MAX_SHOWN_PERCENT}` : Math.round(f.projected)
 
     return (
-      <Box justifyContent="flex-end">
+      <Box flexDirection="column" alignItems="flex-end">
         {beneath}
-        <Box marginLeft={2}>
-          <Text color={over ? 'error' : 'success'}>
-            {pct}% by {f.at} - {over ? 'SLOW DOWN!' : 'BURN SOME TOKENS!'}
-          </Text>
-        </Box>
+        <Text color={over ? 'error' : 'success'}>
+          {pct}% by {f.at} - {over ? 'SLOW DOWN!' : 'BURN SOME TOKENS!'}
+        </Text>
       </Box>
     )
   })

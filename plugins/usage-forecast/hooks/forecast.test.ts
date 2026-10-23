@@ -50,6 +50,31 @@ for (const surface of ['terminal', 'desktop'] as const) {
     expect(text?.props.color).toBe('error')
   })
 
+  test(`slows the projection down while idle and hides it after the reset on ${surface}`, async ($, on) => {
+    const reset = START + 1.5 * HOUR_MS
+    const clock = mock.clock(on, { now: START })
+    answerMeasure(on)
+    answerRender(on)
+    await $.session.measure({ context, rateLimits: fiveHour(40, reset), changed: ['rateLimits'] })
+    await clock.advance(5 * MINUTE_MS)
+    await $.session.measure({ context, rateLimits: fiveHour(45, reset), changed: ['rateLimits'] })
+    await clock.advance(5 * MINUTE_MS)
+    await $.session.measure({ context, rateLimits: fiveHour(50, reset), changed: ['rateLimits'] })
+    await clock.advance(20 * MINUTE_MS)
+
+    const idle = await $.ui.mount({ plugin: 'usage-forecast', surface, component: 'AbovePrompt', props: BAND_PROPS })
+    const text = await idle.find({ type: 'Text', text: /% by / })
+
+    expect(text?.text).toContain('70% by')
+    expect(text?.props.color).toBe('success')
+
+    await clock.advance(HOUR_MS)
+
+    const expired = await $.ui.mount({ plugin: 'usage-forecast', surface, component: 'AbovePrompt', props: BAND_PROPS })
+
+    expect(await expired.find({ type: 'Text', text: /% by / })).toBeUndefined()
+  })
+
   test(`a drop in usage starts a new window on ${surface}`, async ($, on) => {
     const reset = START + 4 * HOUR_MS
     const clock = mock.clock(on, { now: START })
