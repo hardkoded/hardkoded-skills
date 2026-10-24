@@ -27,7 +27,12 @@ orchestrator cannot be one.
 3. Read the config (next section).
 4. Find what "upstream" means for this repo (see "Honor upstream"). Read the
    repo `CLAUDE.md`.
-5. Clean up worktrees from merged PRs (see "Clean up worktrees"). The user
+5. Read `.coderabbit.yaml` at the repo root, if it exists. Note every entry
+   under `reviews.pre_merge_checks.custom_checks`: its `name`, `mode`, and
+   `instructions`. `Upstream parity` is one such check. Subagents get them
+   (see "Launch subagents") and the monitor checks them (see "Pre-merge
+   checks").
+6. Clean up worktrees from merged PRs (see "Clean up worktrees"). The user
    merges PRs after the loop ends, so the next run does this sweep first.
 
 ## Config
@@ -120,6 +125,13 @@ free slots. Give each subagent:
   why. Copy in what "upstream" means for this repo (see "Honor upstream"). If
   the issue cannot be done without working around upstream, report back. That
   is a critical question
+- the pre-merge checks: copy each CodeRabbit custom check's `name` and
+  `instructions` from `.coderabbit.yaml`, word for word. Tell the subagent to
+  write the code, the tests, and the PR description so every check in `error`
+  mode passes on the first review. For `Upstream parity` that means the PR
+  description names the upstream change it ports (commit, PR, or file), names
+  every port-only symbol with its reason, and lists every partial or skipped
+  test, or whatever else the instructions ask for
 
 Record each subagent: issue, agent ID, branch, PR number once it exists.
 
@@ -201,6 +213,16 @@ for every open PR you track:
    from `gh pr view <pr> --json reviews,comments`. Use `--paginate` on any
    `gh api` call. Keep the IDs you already sent to a subagent, per PR, and send
    only new ones. Ignore your own comments and bot noise that is not a finding.
+4. **Pre-merge checks:** CodeRabbit posts one walkthrough comment per PR and
+   edits it in place after each review. Find it in the `comments` from step 3
+   (author `coderabbitai`). Read the part between
+   `<!-- pre_merge_checks_walkthrough_start -->` and
+   `<!-- pre_merge_checks_walkthrough_end -->`. A failed check is listed under
+   "Failed checks" and has a `Full details: <check name>` block with an
+   **Explanation** and a **Resolution**. `Upstream Parity` is one of these
+   checks. The comment ID never changes, so do not dedupe by ID here. Keep,
+   per PR, the check name and the explanation text you last sent, and send
+   again only when the explanation changed.
 
 For each problem, use `SendMessage` to the subagent that owns the PR. Say
 exactly what is wrong: the failing job and the log excerpt, the conflicting
@@ -217,6 +239,29 @@ The subagent must reply to that comment, in its own thread for an inline review
 comment, or as a PR comment that quotes it otherwise. The reply explains the
 reason. The code does not change.
 
+### Pre-merge checks
+
+A failed check in `error` mode blocks the PR. `Upstream Parity` is the one
+you will see most. Treat it, and every other failed custom check, like a
+review comment from a staff engineer, with two differences:
+
+- Send the subagent the whole **Explanation** and **Resolution**, plus the
+  check's `instructions` from `.coderabbit.yaml`. Tell it to make the PR pass
+  the check: fix the code, the tests, the docs, or the PR description,
+  whichever the explanation names. A parity failure is often fixed in the PR
+  description alone, for example by naming a port-only symbol and its reason,
+  or by listing a partial test. Tell the subagent to report what it changed.
+- When the subagent thinks the check is wrong, the code does not change. It
+  replies with a PR comment that quotes the check's explanation and gives the
+  reason. The check keeps failing. Say so in the report. Never tick the
+  "Ignore" checkbox in the CodeRabbit comment. Only the user may.
+
+A parity failure can also show that upstream itself is wrong. The subagent
+still follows upstream (see "Honor upstream") and reports the problem for the
+upstream artifact.
+
+A check in `warning` mode does not block. Judge it like a review comment.
+
 ### Retry limit
 
 Count fix rounds per PR. After 3 rounds with the same problem still open, stop
@@ -224,8 +269,8 @@ working on that PR and ask the user (critical question 4).
 
 ### Done
 
-A PR is done when all checks pass, there are no merge conflicts, and no review
-comment is open. Do not merge it. Note it as ready for the user.
+A PR is done when all checks pass, there are no merge conflicts, no review
+comment is open, and no pre-merge check in `error` mode fails. Do not merge it. Note it as ready for the user.
 
 ## Clean up worktrees
 
@@ -264,6 +309,7 @@ in simple, short sentences:
 - PRs that are ready (links)
 - Issues skipped, and why
 - Questions waiting for the user, each with options
+- Pre-merge checks still failing, each with the PR comment that explains why
 - Minor decisions worth knowing about
 - Worktrees removed, and any skipped because they had changes
 - Upstream problems found, with the artifact link and the count per severity
@@ -275,6 +321,8 @@ leaves a stale label, which the next run reclaims (see Pick issues).
 ## Rules
 
 - Never merge. Never force-push to `main`.
+- Never tick CodeRabbit's "Ignore" checkbox. A failed pre-merge check is
+  fixed or explained, never hidden.
 - Remove a worktree only if it is an `issue-<n>-*` worktree, its PR is merged,
   and it is clean.
 - Never reuse an old branch. Every subagent branches from the latest `main`.
