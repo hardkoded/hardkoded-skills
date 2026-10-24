@@ -264,6 +264,36 @@ gh pr comment <pr> --body "@coderabbitai review"
   and the new review threads.
 - A new push for the same finding counts as a new fix round (see "Retry
   limit"), and gets a new trigger comment.
+- Remember the PR's head commit (`gh pr view <pr> --json headRefOid`) as the
+  commit that CodeRabbit must review. The PR is not done until that review
+  has come back and been handled (see "Wait for the review round").
+
+### Wait for the review round
+
+After you or a subagent asks CodeRabbit to review again, that round is not
+over until CodeRabbit answers. Treat the PR as waiting, not done, and keep
+monitoring other PRs. The round is over when both are true for the head commit
+you remembered:
+
+- CodeRabbit has posted a review on that commit. Check the `commit_id` of the
+  reviews by `coderabbitai[bot]`:
+  `gh api repos/{owner}/{repo}/pulls/<pr>/reviews --paginate --jq '.[] | select(.user.login=="coderabbitai[bot]") | .commit_id'`
+- Its status check on that commit is no longer pending (`gh pr checks <pr>`).
+
+Then read what CodeRabbit found in this round: new review threads and the
+pre-merge section of the edited walkthrough comment (monitor steps 3 and 4).
+Every new finding is a normal problem. Send it to the subagent, who fixes it,
+pushes, and asks for another review. That starts the next round. Repeat until
+a round comes back with no new finding.
+
+If the head commit changes without a new trigger (for example a CI or conflict
+fix pushed after the trigger), post `@coderabbitai review` again and wait for
+a review of the new head commit.
+
+If CodeRabbit has not answered 30 minutes after the trigger, post the trigger
+once more. If it is still silent 30 minutes after that, stop waiting. Tell the
+user in the report that CodeRabbit did not answer, with the PR link. Do not
+call the PR done.
 
 ### Pre-merge checks
 
@@ -296,7 +326,9 @@ working on that PR and ask the user (critical question 4).
 ### Done
 
 A PR is done when all checks pass, there are no merge conflicts, no review
-comment is open, and no pre-merge check in `error` mode fails. Do not merge it. Note it as ready for the user.
+comment is open, no pre-merge check in `error` mode fails, and no CodeRabbit
+review round is waiting (see "Wait for the review round"). Do not merge it.
+Note it as ready for the user.
 
 ## Clean up worktrees
 
@@ -336,6 +368,7 @@ in simple, short sentences:
 - Issues skipped, and why
 - Questions waiting for the user, each with options
 - Pre-merge checks still failing, each with the PR comment that explains why
+- PRs where CodeRabbit never answered a review request
 - Minor decisions worth knowing about
 - Worktrees removed, and any skipped because they had changes
 - Upstream problems found, with the artifact link and the count per severity
