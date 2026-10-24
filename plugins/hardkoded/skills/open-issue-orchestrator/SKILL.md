@@ -132,6 +132,9 @@ free slots. Give each subagent:
   description names the upstream change it ports (commit, PR, or file), names
   every port-only symbol with its reason, and lists every partial or skipped
   test, or whatever else the instructions ask for
+- the re-review rule: after every push that fixes a CodeRabbit finding, post
+  `@coderabbitai review` as a PR comment (see "Ask CodeRabbit to review
+  again") and say so in the report
 
 Record each subagent: issue, agent ID, branch, PR number once it exists.
 
@@ -227,7 +230,8 @@ for every open PR you track:
 For each problem, use `SendMessage` to the subagent that owns the PR. Say
 exactly what is wrong: the failing job and the log excerpt, the conflicting
 files, or the comment text and where it is. Tell it to fix, run the lint and
-format check and the tests, push, and report. A subagent that has
+format check and the tests, push, and report (and ask CodeRabbit to review
+again when the fix answers a CodeRabbit finding). A subagent that has
 finished may not be reachable. Try `SendMessage` first. If that fails, launch
 a new subagent in a new worktree that checks out the existing PR branch
 (`gh pr checkout <pr>`). It must keep that branch and PR, not make new ones.
@@ -238,6 +242,28 @@ fix the real ones. When you disagree with a comment, never skip it silently.
 The subagent must reply to that comment, in its own thread for an inline review
 comment, or as a PR comment that quotes it otherwise. The reply explains the
 reason. The code does not change.
+
+### Ask CodeRabbit to review again
+
+When a subagent pushes a fix for a CodeRabbit finding, CodeRabbit must look at
+the new code. A finding is a CodeRabbit review comment or thread, or a failed
+pre-merge check. Tell the subagent to post this PR comment right after the
+push, once per push, however many findings that push fixes:
+
+```
+gh pr comment <pr> --body "@coderabbitai review"
+```
+
+- Do it only when the push answers a CodeRabbit finding. Do not do it for
+  failed CI, merge conflicts, or comments from people.
+- A reply that only explains a disagreement (no push) does not need it.
+- Ask the subagent to confirm in its report that it posted the comment. If the
+  report does not say so, post it yourself.
+- Your next monitor pass ignores this comment (it is your own). Do not count it
+  as a finding. Judge the result from the edited CodeRabbit walkthrough comment
+  and the new review threads.
+- A new push for the same finding counts as a new fix round (see "Retry
+  limit"), and gets a new trigger comment.
 
 ### Pre-merge checks
 
