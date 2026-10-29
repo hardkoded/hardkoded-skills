@@ -230,16 +230,6 @@ for every open PR you track:
    whole thread, with every reply, plus the file, line, and diff hunk it sits
    on. Pass the subagent the entire comment text and thread, not your
    paraphrase, along with the location.
-   Then look at the history behind the code the comment points at, using the
-   Entire CLI (`entire`). Entire records the sessions and checkpoints that
-   produced each commit, so it tells you why the code is the way it is. Use the
-   `entire:what-happened` skill on the commented file and line range (or
-   `entire:explain`, or `entire checkpoint explain` directly) and read the
-   intent it returns before you judge the comment. A comment that asks to undo
-   something done on purpose is a case to disagree with, and the recorded
-   intent is the reason to give. Send the subagent the relevant intent, short.
-   If `entire` is not installed or the repo is not Entire-enabled, skip this
-   and judge from the comment and the diff alone.
 4. **Pre-merge checks:** CodeRabbit posts one walkthrough comment per PR and
    edits it in place after each review. Find it in the `comments` from step 3
    (author `coderabbitai`). Read the part between
