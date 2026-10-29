@@ -23,6 +23,7 @@ Currently:
   the pull requests for build errors, merge conflicts, and review comments and
   sends them back to the right subagent. It decides minor things itself and
   only asks you critical questions. It never merges.
+- `upstream-parity-check` — run before pushing code ported from an upstream change. It compares the port with the full upstream diff and reports gaps: missing behavior, missing tests, and API, file, class, or function names that drift from upstream. It fixes them before the push.
 
 - `user-email` — an optional Claude Code mod that shows the signed-in
   account email above the prompt. Not installed with `hardkoded`; install it

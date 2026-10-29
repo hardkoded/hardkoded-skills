@@ -132,6 +132,8 @@ free slots. Give each subagent:
   description names the upstream change it ports (commit, PR, or file), names
   every port-only symbol with its reason, and lists every partial or skipped
   test, or whatever else the instructions ask for
+- the parity rule: when the issue ports or follows an upstream change, run the
+  `upstream-parity-check` skill before every push and fix the gaps it finds
 - the re-review rule: after every push that fixes a CodeRabbit finding, post
   `@coderabbitai review` as a PR comment (see "Ask CodeRabbit to review
   again") and say so in the report
