@@ -211,11 +211,35 @@ for every open PR you track:
    `CONFLICTING` means the branch needs a rebase on the latest `main`.
    `UNKNOWN` means GitHub has not computed it yet. Check again on the next
    pass and treat it as not done.
+   Also keep the branch up to date with `main`, even with no conflict:
+   `mergeStateStatus` of `BEHIND` means `main` has moved on. Send the owning
+   subagent to bring the branch up to date (`git fetch`, then merge or rebase
+   `origin/main`, whichever the repo `CLAUDE.md` prefers; merge if it says
+   nothing, so no force-push is needed). It must re-run the lint and format
+   check and the tests, then push. Do this once per new `main` commit, not on
+   every pass. Never do it while the subagent is still fixing something else
+   on that PR: queue it behind that fix.
 3. **Review comments:** read unresolved review threads with the GraphQL
    `reviewThreads` field (`isResolved`), plus review bodies and PR comments
    from `gh pr view <pr> --json reviews,comments`. Use `--paginate` on any
    `gh api` call. Keep the IDs you already sent to a subagent, per PR, and send
    only new ones. Ignore your own comments and bot noise that is not a finding.
+   Read each comment in full, never a truncated preview or summary line: the
+   whole body (including collapsed sections such as "Prompt for AI Agents",
+   suggested diffs, and committable suggestions), and for an inline comment the
+   whole thread, with every reply, plus the file, line, and diff hunk it sits
+   on. Pass the subagent the entire comment text and thread, not your
+   paraphrase, along with the location.
+   Then look at the history behind the code the comment points at, using the
+   Entire CLI (`entire`). Entire records the sessions and checkpoints that
+   produced each commit, so it tells you why the code is the way it is. Use the
+   `entire:what-happened` skill on the commented file and line range (or
+   `entire:explain`, or `entire checkpoint explain` directly) and read the
+   intent it returns before you judge the comment. A comment that asks to undo
+   something done on purpose is a case to disagree with, and the recorded
+   intent is the reason to give. Send the subagent the relevant intent, short.
+   If `entire` is not installed or the repo is not Entire-enabled, skip this
+   and judge from the comment and the diff alone.
 4. **Pre-merge checks:** CodeRabbit posts one walkthrough comment per PR and
    edits it in place after each review. Find it in the `comments` from step 3
    (author `coderabbitai`). Read the part between
@@ -325,7 +349,8 @@ working on that PR and ask the user (critical question 4).
 
 ### Done
 
-A PR is done when all checks pass, there are no merge conflicts, no review
+A PR is done when all checks pass, there are no merge conflicts, the branch is
+not behind `main`, no review
 comment is open, no pre-merge check in `error` mode fails, and no CodeRabbit
 review round is waiting (see "Wait for the review round"). Do not merge it.
 Note it as ready for the user.
