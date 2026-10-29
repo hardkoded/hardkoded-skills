@@ -60,11 +60,43 @@ For each inventory item, find its counterpart in your diff
 - `partial` — present but behavior, branch, or edge case is missing
 - `missing` — absent
 - `port-only` — in your diff but not in upstream (extra file, class, function,
-  or option). Needs a reason
+  or option, and also any `catch`, fallback, or default path inside a function
+  that exists upstream). Needs a reason
+
+A function with the right name is not a ported function. Presence is not
+parity. Compare bodies (step 3), not just symbols.
+
+### Compare bodies, not names
+
+For each ported function, diff it against the upstream body. List on both
+sides: branches, early returns, throws, catches, and fallbacks. Mark every one
+that differs as `partial`, or `port-only` if it exists only in the port.
+
+- **Catches and fallbacks:** every `catch`, `try` fallback, or "if that fails,
+  do X instead" in the port needs an upstream counterpart. If upstream lets
+  the error propagate and the port swallows or redirects it, that is a gap
+  (for example, a port that catches a not-found error and falls back to a
+  broader action, where upstream only allows that fallback in a narrower
+  case). Without an upstream counterpart it is `port-only` and needs a stated
+  reason.
+- **One resolution path per concept:** find every place in the port that
+  resolves the same concept (a scroll target, a list, a node, a path, a
+  config value). Check that they all go through the one resolution path
+  upstream uses. Two code paths that resolve the same thing differently
+  (for example one compares by id, another uses a re-found node) can
+  disagree and are a gap.
+- **Contract sentences:** extract every contract sentence from the upstream
+  docs, skill and reference files, and code comments ("fails with X when Y",
+  "only when Z", "never falls back"). Check each one against the port's code
+  and its tests.
+- **Error codes:** list every error code, error type, or message the upstream
+  change throws. For each, confirm the port can surface it and that a port
+  test exercises it. Include paths upstream's own tests do not cover.
 
 Check these gaps in particular:
 
-1. **Missing behavior:** every upstream branch and edge case exists in the port.
+1. **Missing behavior:** every upstream branch and edge case exists in the port,
+   and the port adds no catch or fallback upstream lacks.
 2. **Missing tests:** every upstream test has a counterpart with the same name
    (adapted to the local test style) and the same assertions. An upstream test
    that cannot be ported must be listed with the reason. A port with fewer tests
@@ -73,8 +105,8 @@ Check these gaps in particular:
    values, and error messages match upstream.
 4. **Name drift:** file paths, class names, and function names are the same as
    upstream, or the closest the language allows. Do not rename to taste.
-5. **Port-only symbols:** each has a stated reason, for example "needed because
-   the language has no equivalent".
+5. **Port-only symbols, catches, and fallbacks:** each has a stated reason, for
+   example "needed because the language has no equivalent".
 6. **Docs and fixtures:** the docs, changelog entries, and test data upstream
    changed are changed here too.
 
@@ -97,7 +129,9 @@ description under `## Upstream parity`:
 
 - the upstream change ported (commit, PR, or file link)
 - counts: ported, renamed (with the reason), partial, missing, port-only
-- every port-only symbol with its reason
+- every port-only symbol, catch, and fallback with its reason
+- every upstream error code and contract sentence, with where the port
+  implements it and which test covers it
 - every skipped or partial test with its reason
 - the verdict: `complete`, or `gaps remain` with the list
 
