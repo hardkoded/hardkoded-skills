@@ -21,6 +21,11 @@ change. It finds gaps between the upstream change and your port. It does not
 decide that upstream is wrong. Follow upstream (see the repo `CLAUDE.md` for
 what "upstream" means here).
 
+Run this skill through the Skill tool and follow its steps in order. Do not
+compare by hand from memory of it: loading the skill and then eyeballing the
+diff skips the inventory, the body comparison, and the repo rules below, and
+that is where reviewers find the gaps.
+
 ## 1. Find the upstream change
 
 Use, in this order: the argument, the PR description (an `Upstream parity`
@@ -110,6 +115,27 @@ Check these gaps in particular:
 6. **Docs and fixtures:** the docs, changelog entries, and test data upstream
    changed are changed here too.
 
+### Check this repo's own parity rules
+
+Upstream parity is not only about upstream. The repo adds rules of its own, and
+automated reviewers apply them. Read the repo `CLAUDE.md` and any reviewer
+config (for example `.coderabbitai.yaml`) and check every parity rule they
+state, as extra items on the same list. Typical rules:
+
+- **Symbol mapping:** every new source symbol maps to an upstream name and
+  place, or the PR body names it as port-only with a reason.
+- **Test layout:** ported tests follow the repo's layout rule (for example a
+  directory per upstream test file, one class per `describe`, one method per
+  `it`, a `Partial_` prefix for partial ports, and each skipped `it` named).
+  Do not dump partial or skipped tests into a shared class.
+- **Port-only behavior:** behavior upstream lacks is named as port-only in the
+  PR body, with a reason.
+- **Public surface:** a public API or user-visible change also updates the
+  repo's skill file, docs site, and compatibility table, whichever the repo
+  keeps.
+
+If the repo states no such rules, say so in the report. Do not invent them.
+
 ## 4. Fix the gaps
 
 Fix every `missing`, `partial`, and unjustified `renamed` item in the code and
@@ -133,6 +159,7 @@ description under `## Upstream parity`:
 - every upstream error code and contract sentence, with where the port
   implements it and which test covers it
 - every skipped or partial test with its reason
+- each repo rule checked (from `CLAUDE.md` and reviewer config) and its result
 - the verdict: `complete`, or `gaps remain` with the list
 
 Push only when the verdict is `complete`, or every remaining gap is a
