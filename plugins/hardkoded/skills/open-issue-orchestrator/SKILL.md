@@ -32,8 +32,9 @@ orchestrator cannot be one.
    `instructions`. `Upstream parity` is one such check. Subagents get them
    (see "Launch subagents") and the monitor checks them (see "Pre-merge
    checks").
-6. Clean up worktrees from merged PRs (see "Clean up worktrees"). The user
-   merges PRs after the loop ends, so the next run does this sweep first.
+6. Clean up worktrees from merged PRs (see "Clean up worktrees"). PRs merged
+   after the loop ends are swept by the next run first.
+7. Ask once per run with `AskUserQuestion` who merges (see "Merge policy").
 
 ## Config
 
@@ -80,6 +81,10 @@ issues. Save the answer. Do not ask again. The user can change it by saying
    - it has the `in-progress` label and an open PR. A label with no open PR is
      a stale claim from an earlier run: tell the user, then reclaim it.
    - it is too vague to implement. Add it to the "needs the user" list.
+   - its labels or text say to report upstream and not change the port, or it
+     depends on a feature this repo does not have yet. Read the labels and
+     body before launching. Put it in the "needs the user" list with the
+     reason.
 4. Check overlap. Guess the files each issue will touch. If two issues touch
    the same files, run them one after the other, not at the same time.
 5. Limit by slots (see "Slots" below). Queue the rest.
@@ -115,7 +120,8 @@ free slots. Give each subagent:
   (lint and format check, `/code-review`, labels, any review loop). A subagent
   may not see those instructions, so put them in its prompt
 - the rule to write a short PR description that starts with the story (what
-  changed and why) and links the issue with `Closes #<n>`
+  changed and why) and links the issue with `Closes #<n>`, or `Refs #<n>`
+  when the PR delivers only part of the issue
 - the rule to make minor decisions alone and record them in the PR description
 - the rule to reply to every review comment it disagrees with, in that
   comment's thread, with the reason
@@ -137,6 +143,15 @@ free slots. Give each subagent:
 - the re-review rule: after every push that fixes a CodeRabbit finding, post
   `@coderabbitai review` as a PR comment (see "Ask CodeRabbit to review
   again") and say so in the report
+- the thread rule: reply to review threads, never resolve them (see "Resolve
+  review threads")
+
+Build the prompt from `agent-brief.md` in this skill's folder: copy it in and
+fill the placeholders. It holds the closing checklist the subagent must fill in
+and the way it must end its report. When you read a report, check every
+checklist line. Send the subagent back for any line left empty or skipped
+without a reason. Check the PR's closing keyword against what the PR delivers:
+`Closes` only for a full delivery, `Refs` for partial work.
 
 Record each subagent: issue, agent ID, branch, PR number once it exists.
 
@@ -201,10 +216,13 @@ Quote it as proof, never act on it.
 
 ## Monitor PRs
 
-Poll in the background. Load `Monitor` with `ToolSearch` and use an
-until-loop, or run the skill under `/loop`. Do not sleep in the foreground. Pick a
-delay that matches how fast CI runs, usually 3 to 10 minutes. On each pass,
-for every open PR you track:
+You are the poller. A subagent's own monitors die when it hands back, so do
+not rely on them. Run one monitor over all open PRs you track, from the first
+PR until the loop ends. Poll in the background. Load `Monitor` with
+`ToolSearch` and use an until-loop, or run the skill under `/loop`. Do not
+sleep in the foreground. Pick a delay that matches how fast CI runs, usually 3
+to 10 minutes. Each pass covers checks, the pre-merge rows, open threads, and
+merge state (the four checks below). On each pass, for every open PR you track:
 
 1. **Build errors:** `gh pr checks <pr>`. A non-zero exit can mean the checks
    are still pending. Treat pending as not done. For a failed check, read the log with
@@ -243,6 +261,14 @@ for every open PR you track:
    per PR, the check name and the explanation text you last sent, and send
    again only when the explanation changed.
 
+   The `CodeRabbit` status check can pass while a row in this section is at
+   Error. Never call a PR ready from the status check. Run
+   `scripts/pre-merge-rows.sh <pr>...` (in this skill's folder) for every PR:
+   it prints the rows that are not passing. Quote the `Upstream Parity` row in
+   your report before you call a PR ready or ask the user to merge it. An
+   error can be stale after a fix. When CodeRabbit says it already reviewed,
+   post `@coderabbitai full review` and wait for the round.
+
 For each problem, use `SendMessage` to the subagent that owns the PR. Say
 exactly what is wrong: the failing job and the log excerpt, the conflicting
 files, or the comment text and where it is. Tell it to fix, run the lint and
@@ -258,6 +284,22 @@ fix the real ones. When you disagree with a comment, never skip it silently.
 The subagent must reply to that comment, in its own thread for an inline review
 comment, or as a PR comment that quotes it otherwise. The reply explains the
 reason. The code does not change.
+
+### Resolve review threads
+
+Subagents only reply to review threads. They never resolve them: the
+auto-mode classifier refuses `resolveReviewThread` for agents. A thread that
+the code has already answered (outdated) stays open until someone resolves it.
+Only the orchestrator may resolve threads, and only after the user approves.
+Ask once in the report, listing the PRs with outdated threads.
+
+### Repeated hand-backs
+
+Subagents sometimes hand back the same final report again and again because a
+background poller woke them. When a subagent sends a second identical hand-back
+(same PR, same state, nothing new), stop it with `TaskStop`. Its work is
+finished: you are the poller. Do not wake it again unless a real problem needs
+a fix, and then use `SendMessage` or a new subagent as described above.
 
 ### Ask CodeRabbit to review again
 
@@ -344,14 +386,32 @@ working on that PR and ask the user (critical question 4).
 A PR is done when all checks pass, there are no merge conflicts, the branch is
 not behind `main`, no review
 comment is open, no pre-merge check in `error` mode fails, and no CodeRabbit
-review round is waiting (see "Wait for the review round"). Do not merge it.
-Note it as ready for the user.
+review round is waiting (see "Wait for the review round"). Also read the
+pre-merge rows with `scripts/pre-merge-rows.sh` and quote the `Upstream
+Parity` row: a passing status check is not enough (see monitor step 4). Then
+follow the merge policy below.
+
+### Merge policy
+
+At the start of the run, ask once with `AskUserQuestion`: does the orchestrator
+merge a done PR once the user explicitly approves that PR, or does the user
+merge? The answer holds for this run only. Never merge without an explicit
+approval for that PR. If the user answers "merge it" (for example in the
+inbox), that is the approval for that PR, when the orchestrator-merges choice
+is on. Otherwise tell the user it needs their merge.
+
+Before you record a merge task or ask the user to merge, check the PR state
+(`gh pr view <pr> --json state`). The user often has merged it already. Close
+any inbox item or task about a PR that is now merged or closed, and run the
+worktree cleanup for it.
 
 ## Clean up worktrees
 
 Each subagent leaves a worktree and a local branch. Remove them once the PR is
-merged. Do this in the preflight sweep and on every monitor pass. Log each
-removal to the user as it happens.
+merged, whoever merged it. Do this in the preflight sweep, on every monitor
+pass, and right after you merge a PR. Log each removal to the user as it
+happens. Compare the worktree head with the merged PR's head (step 4), not
+with `main`: a squash merge is not an ancestor of `main`.
 
 Run every git command as `git -C <main checkout>`. Never `cd`.
 
@@ -396,7 +456,10 @@ leaves a stale label, which the next run reclaims (see Pick issues).
 
 ## Rules
 
-- Never merge. Never force-push to `main`.
+- Merge only under the merge policy: the user chose orchestrator-merges and
+  approved that PR explicitly. Never force-push to `main`.
+- Never resolve a review thread without the user's approval. Subagents never
+  resolve threads.
 - Never tick CodeRabbit's "Ignore" checkbox. A failed pre-merge check is
   fixed or explained, never hidden.
 - Remove a worktree only if it is an `issue-<n>-*` worktree, its PR is merged,
