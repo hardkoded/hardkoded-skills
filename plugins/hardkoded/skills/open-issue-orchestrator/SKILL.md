@@ -285,6 +285,22 @@ The subagent must reply to that comment, in its own thread for an inline review
 comment, or as a PR comment that quotes it otherwise. The reply explains the
 reason. The code does not change.
 
+### Resolve review threads
+
+Subagents only reply to review threads. They never resolve them: the
+auto-mode classifier refuses `resolveReviewThread` for agents. A thread that
+the code has already answered (outdated) stays open until someone resolves it.
+Only the orchestrator may resolve threads, and only after the user approves.
+Ask once in the report, listing the PRs with outdated threads.
+
+### Repeated hand-backs
+
+Subagents sometimes hand back the same final report again and again because a
+background poller woke them. When a subagent sends a second identical hand-back
+(same PR, same state, nothing new), stop it with `TaskStop`. Its work is
+finished: you are the poller. Do not wake it again unless a real problem needs
+a fix, and then use `SendMessage` or a new subagent as described above.
+
 ### Ask CodeRabbit to review again
 
 When a subagent pushes a fix for a CodeRabbit finding, CodeRabbit must look at
